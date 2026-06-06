@@ -98,6 +98,7 @@ object RfcommController {
     private fun changeUIAncStatus(status: Int) {
         if (status < 1 || status > 8) return
         Intent(OppoPodsAction.ACTION_PODS_ANC_CHANGED).apply {
+            if (::mDevice.isInitialized) this.putExtra("address", mDevice.address)
             this.putExtra("status", status)
             this.`package` = BuildConfig.APPLICATION_ID
             this.addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
@@ -110,6 +111,7 @@ object RfcommController {
 
     private fun changeUIBatteryStatus(status: BatteryParams) {
         Intent(OppoPodsAction.ACTION_PODS_BATTERY_CHANGED).apply {
+            if (::mDevice.isInitialized) this.putExtra("address", mDevice.address)
             this.putExtra("status", status)
             putBatteryExtras(status)
             this.`package` = BuildConfig.APPLICATION_ID
@@ -153,6 +155,7 @@ object RfcommController {
                 changeUIGameModeStatus(currentGameMode)
                 changeUITransparencyVocalEnhancementStatus(currentTransparencyVocalEnhancement)
                 Intent(OppoPodsAction.ACTION_PODS_CONNECTED).apply {
+                    this.putExtra("address", mDevice.address)
                     this.putExtra("device_name", mDevice.name ?: cachedDeviceName)
                     this.`package` = BuildConfig.APPLICATION_ID
                     this.addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
@@ -383,6 +386,7 @@ object RfcommController {
         }
 
         Intent(OppoPodsAction.ACTION_PODS_CONNECTED).apply {
+            this.putExtra("address", mDevice.address)
             this.putExtra("device_name", cachedDeviceName)
             this.`package` = BuildConfig.APPLICATION_ID
             this.addFlags(Intent.FLAG_RECEIVER_FOREGROUND)

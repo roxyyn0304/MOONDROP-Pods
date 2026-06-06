@@ -135,6 +135,7 @@ fun MainUI(
     var showRestartScopeDialog by remember { mutableStateOf(false) }
     var restartingScopes by remember { mutableStateOf(false) }
     var connectingDeviceAddress by remember { mutableStateOf<String?>(null) }
+    var connectedDeviceAddress by remember { mutableStateOf("") }
     var showConnectErrorDialog by remember { mutableStateOf(false) }
     val backgroundColor = appBackground()
     val overlayBottomBar = floatingBottomBar.value || blurBottomBar.value
@@ -228,6 +229,7 @@ fun MainUI(
             override fun onReceive(p0: Context?, p1: Intent?) {
                 when (p1?.action) {
                     OppoPodsAction.ACTION_PODS_ANC_CHANGED -> {
+                        connectedDeviceAddress = p1.getStringExtra("address") ?: connectedDeviceAddress
                         val status = p1.getIntExtra("status", 1)
                         ancMode.value = when (status) {
                             1 -> NoiseControlMode.OFF
@@ -243,6 +245,7 @@ fun MainUI(
                     }
 
                     OppoPodsAction.ACTION_PODS_BATTERY_CHANGED -> {
+                        connectedDeviceAddress = p1.getStringExtra("address") ?: connectedDeviceAddress
                         batteryParams.value =
                             p1.getParcelableExtra("status", BatteryParams::class.java)!!
                     }
@@ -257,6 +260,7 @@ fun MainUI(
 
                     OppoPodsAction.ACTION_PODS_CONNECTED -> {
                         val deviceName = p1.getStringExtra("device_name")
+                        connectedDeviceAddress = p1.getStringExtra("address") ?: connectedDeviceAddress
                         mainTitle.value = deviceName ?: ""
                         hookConnected.value = true
                         showDevicePicker = false
@@ -266,6 +270,7 @@ fun MainUI(
 
                     OppoPodsAction.ACTION_PODS_DISCONNECTED -> {
                         mainTitle.value = ""
+                        connectedDeviceAddress = ""
                         hookConnected.value = false
                         if (p0 is MainActivity) {
                             p0.finish()
@@ -357,6 +362,7 @@ fun MainUI(
 
     fun onDeviceSelected(device: BluetoothDevice) {
         connectingDeviceAddress = device.address
+        connectedDeviceAddress = device.address
         showConnectErrorDialog = false
         showDevicePicker = true
         appController.connect(
@@ -370,7 +376,38 @@ fun MainUI(
         showDevicePicker = true
         appController.disconnect()
         hookConnected.value = false
+        connectedDeviceAddress = ""
         mainTitle.value = ""
+    }
+
+    @SuppressLint("MissingPermission")
+    fun openSystemHeadsetSettings() {
+        val address = when {
+            isStandaloneConnected -> appDeviceAddress
+            else -> connectedDeviceAddress
+        }
+        if (address.isBlank()) {
+            Toast.makeText(context, R.string.connect_failed, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val device = runCatching {
+            BluetoothAdapter.getDefaultAdapter()?.getRemoteDevice(address)
+        }.getOrNull()
+        if (device == null) {
+            Toast.makeText(context, R.string.connect_failed, Toast.LENGTH_SHORT).show()
+            return
+        }
+        Intent().apply {
+            setClassName("com.android.settings", "com.android.settings.bluetooth.MiuiHeadsetActivity")
+            putExtra("android.bluetooth.device.extra.DEVICE", device)
+            putExtra("bluetoothaddress", device.address)
+            putExtra("MIUI_HEADSET_SUPPORT", ConfigManager.fakeSupport())
+            putExtra("COME_FROM", "MIUI_BLUETOOTH_SETTINGS")
+            putExtra("DEVICE_ID", ConfigManager.fakeDeviceId())
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            runCatching { context.startActivity(this) }
+                .onFailure { Toast.makeText(context, R.string.connect_failed, Toast.LENGTH_SHORT).show() }
+        }
     }
 
     fun refreshStatus() {
@@ -428,7 +465,14 @@ fun MainUI(
                                 }
                             },
                             actions = {
-                                if (selectedTab == MainTab.Module) {
+                                if (selectedTab == MainTab.Earphones && showEarphoneDetail) {
+                                    IconButton(onClick = { openSystemHeadsetSettings() }) {
+                                        Icon(
+                                            imageVector = MiuixIcons.Settings,
+                                            contentDescription = stringResource(R.string.click_action_system_settings)
+                                        )
+                                    }
+                                } else if (selectedTab == MainTab.Module) {
                                     IconButton(
                                         onClick = {
                                             if (!restartingScopes) {
@@ -616,13 +660,24 @@ fun MainUI(
                     if (isLandscapeDetail) {
                         IconButton(
                             modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(top = 8.dp, end = 8.dp),
+                                .align(Alignment.TopStart)
+                                .padding(top = 8.dp, start = 8.dp),
                             onClick = { backToDevicePicker() }
                         ) {
                             Icon(
                                 imageVector = MiuixIcons.Back,
                                 contentDescription = "Back"
+                            )
+                        }
+                        IconButton(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(top = 8.dp, end = 8.dp),
+                            onClick = { openSystemHeadsetSettings() }
+                        ) {
+                            Icon(
+                                imageVector = MiuixIcons.Settings,
+                                contentDescription = stringResource(R.string.click_action_system_settings)
                             )
                         }
                     }
