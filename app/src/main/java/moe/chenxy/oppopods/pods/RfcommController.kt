@@ -10,7 +10,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.media.AudioManager
 import android.media.MediaRoute2Info
 import android.media.MediaRouter2
 import android.media.RouteDiscoveryPreference
@@ -21,6 +20,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import moe.chenxy.oppopods.BuildConfig
+import moe.chenxy.oppopods.config.ConfigManager
 import moe.chenxy.oppopods.utils.MediaControl
 import moe.chenxy.oppopods.utils.SystemApisUtils
 import moe.chenxy.oppopods.utils.SystemApisUtils.setIconVisibility
@@ -28,7 +28,6 @@ import moe.chenxy.oppopods.utils.miuiStrongToast.MiuiStrongToastUtil
 import moe.chenxy.oppopods.utils.miuiStrongToast.MiuiStrongToastUtil.cancelPodsNotificationByMiuiBt
 import moe.chenxy.oppopods.utils.miuiStrongToast.data.BatteryParams
 import moe.chenxy.oppopods.utils.miuiStrongToast.data.OppoPodsAction
-import moe.chenxy.oppopods.utils.miuiStrongToast.data.OppoPodsPrefsKey
 import moe.chenxy.oppopods.utils.miuiStrongToast.data.PodParams
 import java.io.IOException
 import java.io.InputStream
@@ -39,16 +38,12 @@ import java.util.concurrent.atomic.AtomicInteger
 @SuppressLint("MissingPermission", "StaticFieldLeak")
 object RfcommController {
     private const val TAG = "OppoPods-RfcommController"
-    private const val RFCOMM_CHANNEL = 15
-    private const val AUTO_RECONNECT_DELAY_MS = 60_000L
+    private const val AUTO_RECONNECT_DELAY_MS = 120_000L
 
     // Basic Objects
     private var socket: BluetoothSocket? = null
     private var mContext: Context? = null
     lateinit var mDevice: BluetoothDevice
-    private val audioManager: AudioManager? by lazy {
-        mContext?.getSystemService(AudioManager::class.java)
-    }
     private lateinit var mPrefs: SharedPreferences
 
     private var scanToken: MediaRouter2.ScanToken? = null
@@ -65,6 +60,7 @@ object RfcommController {
     private var currentTransparencyVocalEnhancement: Boolean = false
     private var autoGameModeEnabled: Boolean = false
     private var gameModeImplementation: GameModeImplementation = GameModeImplementation.STANDARD
+    private var rfcommChannel: Int = ConfigManager.DEFAULT_RFCOMM_CHANNEL
     private var lastGameModeStatusUpdateMs: Long = 0L
     // Adaptive模式状态缓存，通过广播同步确保跨进程实时一致，避免 SharedPreferences 跨进程缓存导致读取过时值
     private var adaptiveModeEnabled: Boolean = true
@@ -215,9 +211,6 @@ object RfcommController {
         )
     }
 
-    fun currentMiuiRefreshPayload(): String {
-        return miuiRefreshPayload(currentStatusSnapshot().battery, currentAnc, currentTransparencyVocalEnhancement)
-    }
 
     fun miuiRefreshPayload(battery: BatteryParams?, anc: Int, transparencyVocalEnhancement: Boolean = false): String {
         val values = MutableList(16) { "" }
@@ -283,9 +276,7 @@ object RfcommController {
             )
         }
 
-        if (BuildConfig.DEBUG) {
-            Log.v(TAG, "batt left ${left.battery} right ${right.battery} case ${case.battery}")
-        }
+        Log.v(TAG, "batt left ${left.battery} right ${right.battery} case ${case.battery}")
 
         val shouldShowToast = !mShowedConnectedToast
         if (shouldShowToast) {
@@ -343,12 +334,12 @@ object RfcommController {
     }
 
     /**
-     * Create RFCOMM socket to OPPO earphone on channel 15 via reflection.
+     * Create RFCOMM socket to OPPO earphone on the configured channel via reflection.
      */
     @SuppressLint("DiscouragedPrivateApi")
-    private fun createRfcommSocket(device: BluetoothDevice): BluetoothSocket {
+    private fun createRfcommSocket(device: BluetoothDevice, channel: Int): BluetoothSocket {
         val method = device.javaClass.getMethod("createRfcommSocket", Int::class.javaPrimitiveType)
-        return method.invoke(device, RFCOMM_CHANNEL) as BluetoothSocket
+        return method.invoke(device, channel) as BluetoothSocket
     }
 
     fun connectPod(context: Context, device: BluetoothDevice, prefs: SharedPreferences) {
@@ -366,9 +357,11 @@ object RfcommController {
         gameModeImplementation = GameModeImplementation.fromPreference(
             mPrefs.getString(GameModeImplementation.PREF_KEY, null)
         )
+        rfcommChannel = ConfigManager.refreshFromPrefs(mPrefs).rfcommChannel
         Log.d(TAG, "Adaptive mode initial: $adaptiveModeEnabled")
         Log.d(TAG, "Auto game mode initial: $autoGameModeEnabled")
         Log.d(TAG, "Game mode implementation initial: ${gameModeImplementation.preferenceValue}")
+        Log.d(TAG, "RFCOMM channel initial: $rfcommChannel")
 
         if (!receiverRegistered) {
             context.registerReceiver(broadcastReceiver, IntentFilter().apply {
@@ -441,12 +434,12 @@ object RfcommController {
             if (!isConnected || !::mDevice.isInitialized) return@launch
             closeSocketOnly()
             try {
-                val newSocket = createRfcommSocket(mDevice)
+                val newSocket = createRfcommSocket(mDevice, rfcommChannel)
                 newSocket.connect()
                 socket = newSocket
                 reconnectAttempts.set(0)
                 reconnectPending = false
-                Log.d(TAG, "RFCOMM connected!")
+                Log.d(TAG, "RFCOMM connected! channel=$rfcommChannel")
 
                 startPacketReader(newSocket.inputStream)
 
@@ -534,9 +527,7 @@ object RfcommController {
 
     @OptIn(ExperimentalStdlibApi::class)
     private fun handleOppoPacket(packet: ByteArray) {
-        if (BuildConfig.DEBUG) {
-            Log.v(TAG, "Received: ${packet.toHexString(HexFormat.UpperCase)}")
-        }
+        Log.v(TAG, "Received: ${packet.toHexString(HexFormat.UpperCase)}")
 
         // Try parse as battery response (query response, Cmd=0x8106)
         val batteryResult = BatteryParser.parse(packet)
@@ -595,9 +586,7 @@ object RfcommController {
         }
 
         // Unknown packet - log in debug
-        if (BuildConfig.DEBUG) {
-            Log.v(TAG, "Unknown OPPO packet: ${packet.toHexString(HexFormat.UpperCase)}")
-        }
+        Log.d(TAG, "Unknown OPPO packet: ${packet.toHexString(HexFormat.UpperCase)}")
     }
 
     fun disconnectedPod(context: Context, device: BluetoothDevice) {

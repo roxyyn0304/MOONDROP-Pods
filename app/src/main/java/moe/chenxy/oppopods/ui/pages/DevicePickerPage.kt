@@ -39,13 +39,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import androidx.core.content.ContextCompat
 import moe.chenxy.oppopods.R
+import moe.chenxy.oppopods.config.ConfigManager
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.DropdownEntry
+import top.yukonga.miuix.kmp.basic.DropdownItem
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.overlay.OverlayCascadingListPopup
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
+import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.Info
+import top.yukonga.miuix.kmp.icon.extended.Tune
 import top.yukonga.miuix.kmp.theme.LocalDismissState
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.window.WindowDialog
@@ -57,8 +66,10 @@ fun DevicePickerPage(
     connectedDeviceAddress: String = "",
     connectingDeviceAddress: String? = null,
     showConnectError: Boolean = false,
+    rfcommChannel: Int = 15,
     bottomContentPadding: Dp = 16.dp,
     onDeviceSelected: (BluetoothDevice) -> Unit,
+    onRfcommChannelChange: (Int) -> Unit = {},
     onDismissConnectError: () -> Unit = {},
 ) {
     val context = LocalContext.current
@@ -75,6 +86,27 @@ fun DevicePickerPage(
 
     val showMacDialog = remember { mutableStateOf(false) }
     var macInput by remember { mutableStateOf("") }
+    var showRfcommPopup by remember { mutableStateOf(false) }
+    var showRfcommHelpDialog by remember { mutableStateOf(false) }
+    val rfcommChannels = remember { ConfigManager.RFCOMM_CHANNELS }
+    val rfcommEntries = remember(rfcommChannel) {
+        listOf(
+            DropdownEntry(
+                items = listOf(
+                    DropdownItem(
+                        text = context.getString(R.string.rfcomm_channel),
+                        children = rfcommChannels.map { channel ->
+                            DropdownItem(
+                                text = channel.toString(),
+                                selected = rfcommChannel == channel,
+                                onClick = { onRfcommChannelChange(channel) },
+                            )
+                        },
+                    ),
+                ),
+            ),
+        )
+    }
 
     LaunchedEffect(Unit) {
         if (!hasPermission) {
@@ -112,11 +144,35 @@ fun DevicePickerPage(
             contentPadding = PaddingValues(start = 12.dp, top = 12.dp, end = 12.dp, bottom = bottomContentPadding),
         ) {
             item {
-                Text(
-                    stringResource(R.string.select_device),
-                    color = MiuixTheme.colorScheme.onBackground,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        stringResource(R.string.select_device),
+                        color = MiuixTheme.colorScheme.onBackground,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Box {
+                        IconButton(onClick = { showRfcommPopup = true }) {
+                            Icon(
+                                imageVector = MiuixIcons.Tune,
+                                contentDescription = stringResource(R.string.rfcomm_channel),
+                            )
+                        }
+                        OverlayCascadingListPopup(
+                            show = showRfcommPopup,
+                            entries = rfcommEntries,
+                            onDismissRequest = { showRfcommPopup = false },
+                        )
+                    }
+                    IconButton(onClick = { showRfcommHelpDialog = true }) {
+                        Icon(
+                            imageVector = MiuixIcons.Info,
+                            contentDescription = stringResource(R.string.rfcomm_channel_help_title),
+                        )
+                    }
+                }
             }
             if (pairedDevices.isEmpty()) {
                 item {
@@ -193,6 +249,21 @@ fun DevicePickerPage(
         title = stringResource(R.string.connect_failed),
         show = showConnectError,
         onDismissRequest = onDismissConnectError,
+    ) {
+        val dismiss = LocalDismissState.current
+        TextButton(
+            text = stringResource(R.string.confirm),
+            onClick = { dismiss?.invoke() },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.textButtonColorsPrimary(),
+        )
+    }
+
+    WindowDialog(
+        title = stringResource(R.string.rfcomm_channel_help_title),
+        summary = stringResource(R.string.rfcomm_channel_help_summary),
+        show = showRfcommHelpDialog,
+        onDismissRequest = { showRfcommHelpDialog = false },
     ) {
         val dismiss = LocalDismissState.current
         TextButton(

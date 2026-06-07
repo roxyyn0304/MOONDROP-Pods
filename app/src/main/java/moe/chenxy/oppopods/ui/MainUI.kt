@@ -166,6 +166,7 @@ fun MainUI(
     val logLevel = remember { mutableStateOf(appConfig.logLevel) }
     val fakeDeviceId = remember { mutableStateOf(appConfig.fakeDeviceId) }
     val islandMode = remember { mutableStateOf(appConfig.islandMode) }
+    val rfcommChannel = remember { mutableStateOf(appConfig.rfcommChannel) }
     // Adaptive模式偏好设置（持久化存储），默认开启
     val adaptiveMode = remember { mutableStateOf(prefs.getBoolean("adaptive_mode", true)) }
 
@@ -368,7 +369,8 @@ fun MainUI(
         appController.connect(
             device = device,
             autoGameMode = autoGameMode.value,
-            gameModeImplementation = gameModeImplementation.value
+            gameModeImplementation = gameModeImplementation.value,
+            rfcommChannel = rfcommChannel.value,
         )
     }
 
@@ -554,8 +556,13 @@ fun MainUI(
                                         connectedDeviceAddress = if (isStandaloneConnected) appDeviceAddress else "",
                                         connectingDeviceAddress = connectingDeviceAddress,
                                         showConnectError = showConnectErrorDialog,
+                                        rfcommChannel = rfcommChannel.value,
                                         bottomContentPadding = pageBottomContentPadding,
                                         onDeviceSelected = { onDeviceSelected(it) },
+                                        onRfcommChannelChange = {
+                                            rfcommChannel.value = it
+                                            ConfigManager.updateRfcommChannel(prefs, xposedService, it)
+                                        },
                                         onDismissConnectError = {
                                             showConnectErrorDialog = false
                                             appController.disconnect()

@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import moe.chenxy.oppopods.BuildConfig
+import moe.chenxy.oppopods.config.ConfigManager
 import moe.chenxy.oppopods.utils.miuiStrongToast.data.BatteryParams
 import moe.chenxy.oppopods.utils.miuiStrongToast.data.PodParams
 import java.io.IOException
@@ -27,7 +28,6 @@ import java.io.InputStream
 class AppRfcommController {
     companion object {
         private const val TAG = "OppoPods-AppRfcomm"
-        private const val RFCOMM_CHANNEL = 15
         private const val BATTERY_POLL_INTERVAL_MS = 30_000L
     }
 
@@ -64,15 +64,16 @@ class AppRfcommController {
     val transparencyVocalEnhancement: StateFlow<Boolean> = _transparencyVocalEnhancement
 
     @SuppressLint("DiscouragedPrivateApi")
-    private fun createRfcommSocket(device: BluetoothDevice): BluetoothSocket {
+    private fun createRfcommSocket(device: BluetoothDevice, channel: Int): BluetoothSocket {
         val method = device.javaClass.getMethod("createRfcommSocket", Int::class.javaPrimitiveType)
-        return method.invoke(device, RFCOMM_CHANNEL) as BluetoothSocket
+        return method.invoke(device, channel) as BluetoothSocket
     }
 
     fun connect(
         device: BluetoothDevice,
         autoGameMode: Boolean = false,
-        gameModeImplementation: GameModeImplementation = GameModeImplementation.STANDARD
+        gameModeImplementation: GameModeImplementation = GameModeImplementation.STANDARD,
+        rfcommChannel: Int = ConfigManager.DEFAULT_RFCOMM_CHANNEL,
     ) {
         if (_connectionState.value == ConnectionState.CONNECTING) return
 
@@ -84,9 +85,10 @@ class AppRfcommController {
         scope.launch {
             try {
                 delay(300)
-                socket = createRfcommSocket(device)
+                val channel = rfcommChannel.takeIf { it in ConfigManager.RFCOMM_CHANNELS } ?: ConfigManager.DEFAULT_RFCOMM_CHANNEL
+                socket = createRfcommSocket(device, channel)
                 socket!!.connect()
-                Log.d(TAG, "RFCOMM connected to ${device.name}")
+                Log.d(TAG, "RFCOMM connected to ${device.name} channel=$channel")
                 isConnected = true
                 _connectionState.value = ConnectionState.CONNECTED
 

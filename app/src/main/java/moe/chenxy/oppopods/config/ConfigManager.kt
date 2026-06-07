@@ -12,7 +12,8 @@ data class AppConfig(
     val logLevel: Int = ConfigManager.LOG_LEVEL_BASIC,
     val islandMode: Int = ConfigManager.ISLAND_MODE_OFFICIAL,
     val notificationClickAction: Int = ConfigManager.NOTIFICATION_CLICK_MODULE_POPUP,
-    val moreClickAction: Int = ConfigManager.MORE_CLICK_MODULE
+    val moreClickAction: Int = ConfigManager.MORE_CLICK_MODULE,
+    val rfcommChannel: Int = ConfigManager.DEFAULT_RFCOMM_CHANNEL,
 )
 
 object ConfigManager {
@@ -24,7 +25,10 @@ object ConfigManager {
     const val PREF_KEY_ISLAND_MODE = "island_mode"
     const val PREF_KEY_NOTIFICATION_CLICK_ACTION = "notification_click_action"
     const val PREF_KEY_MORE_CLICK_ACTION = "more_click_action"
+    const val PREF_KEY_RFCOMM_CHANNEL = "rfcomm_channel"
     const val DEFAULT_FAKE_DEVICE_ID = "01010607"
+    const val DEFAULT_RFCOMM_CHANNEL = 15
+    val RFCOMM_CHANNELS = listOf(5, 15)
     const val LOG_LEVEL_OFF = 0
     const val LOG_LEVEL_BASIC = 1
     const val LOG_LEVEL_DEBUG = 2
@@ -72,6 +76,8 @@ object ConfigManager {
 
     fun moreClickAction(): Int = current().moreClickAction.coerceIn(MORE_CLICK_HEYTAP, MORE_CLICK_MODULE)
 
+    fun rfcommChannel(): Int = current().rfcommChannel.normalizedRfcommChannel()
+
     fun fakeSupport(): String = "${fakeDeviceId()},000000000000000010000000"
 
     fun updateFakeDeviceId(prefs: SharedPreferences, fakeDeviceId: String) {
@@ -104,6 +110,11 @@ object ConfigManager {
         save(prefs, service, config)
     }
 
+    fun updateRfcommChannel(prefs: SharedPreferences, service: XposedService?, channel: Int) {
+        val config = current().copy(rfcommChannel = channel.normalizedRfcommChannel())
+        save(prefs, service, config)
+    }
+
     fun save(prefs: SharedPreferences, config: AppConfig) {
         val oldConfig = cachedConfig
         val normalized = config.copy(fakeDeviceId = config.fakeDeviceId.normalizedFakeDeviceId())
@@ -132,6 +143,7 @@ object ConfigManager {
             .putInt(PREF_KEY_ISLAND_MODE, config.islandMode)
             .putInt(PREF_KEY_NOTIFICATION_CLICK_ACTION, config.notificationClickAction)
             .putInt(PREF_KEY_MORE_CLICK_ACTION, config.moreClickAction)
+            .putInt(PREF_KEY_RFCOMM_CHANNEL, config.rfcommChannel)
             .commit()
     }
 
@@ -141,6 +153,7 @@ object ConfigManager {
         val directIslandMode = prefs.getInt(PREF_KEY_ISLAND_MODE, Int.MIN_VALUE)
         val directNotificationClickAction = prefs.getInt(PREF_KEY_NOTIFICATION_CLICK_ACTION, Int.MIN_VALUE)
         val directMoreClickAction = prefs.getInt(PREF_KEY_MORE_CLICK_ACTION, Int.MIN_VALUE)
+        val directRfcommChannel = prefs.getInt(PREF_KEY_RFCOMM_CHANNEL, Int.MIN_VALUE)
         val raw = prefs.getString(PREF_KEY_CONFIG_JSON, null)
         logPrefsSnapshot(source, prefs, directFakeDeviceId, raw)
         val config = raw?.let {
@@ -154,6 +167,7 @@ object ConfigManager {
                 islandMode = directIslandMode.takeIf { it != Int.MIN_VALUE } ?: config.islandMode,
                 notificationClickAction = directNotificationClickAction.takeIf { it != Int.MIN_VALUE } ?: config.notificationClickAction,
                 moreClickAction = directMoreClickAction.takeIf { it != Int.MIN_VALUE } ?: migratedMoreClickAction,
+                rfcommChannel = directRfcommChannel.takeIf { it != Int.MIN_VALUE } ?: config.rfcommChannel,
             ).normalized()
         }
         return config.copy(
@@ -162,6 +176,7 @@ object ConfigManager {
             islandMode = directIslandMode.takeIf { it != Int.MIN_VALUE } ?: config.islandMode,
             notificationClickAction = directNotificationClickAction.takeIf { it != Int.MIN_VALUE } ?: config.notificationClickAction,
             moreClickAction = directMoreClickAction.takeIf { it != Int.MIN_VALUE } ?: migratedMoreClickAction,
+            rfcommChannel = directRfcommChannel.takeIf { it != Int.MIN_VALUE } ?: config.rfcommChannel,
         ).normalized()
     }
 
@@ -171,9 +186,12 @@ object ConfigManager {
         islandMode = islandMode.coerceIn(ISLAND_MODE_NONE, ISLAND_MODE_MODULE),
         notificationClickAction = notificationClickAction.coerceIn(NOTIFICATION_CLICK_MODULE_POPUP, NOTIFICATION_CLICK_HEYTAP),
         moreClickAction = moreClickAction.coerceIn(MORE_CLICK_HEYTAP, MORE_CLICK_MODULE),
+        rfcommChannel = rfcommChannel.normalizedRfcommChannel(),
     )
 
     private fun String.normalizedFakeDeviceId(): String = trim().takeIf { it.isNotEmpty() } ?: DEFAULT_FAKE_DEVICE_ID
+
+    private fun Int.normalizedRfcommChannel(): Int = takeIf { it in RFCOMM_CHANNELS } ?: DEFAULT_RFCOMM_CHANNEL
 
     private fun logConfigChange(source: String, oldConfig: AppConfig, newConfig: AppConfig) {
         val changes = changedFields(oldConfig, newConfig)
@@ -209,6 +227,9 @@ object ConfigManager {
             }
             if (oldConfig.moreClickAction != newConfig.moreClickAction) {
                 add("moreClickAction=${oldConfig.moreClickAction}->${newConfig.moreClickAction}")
+            }
+            if (oldConfig.rfcommChannel != newConfig.rfcommChannel) {
+                add("rfcommChannel=${oldConfig.rfcommChannel}->${newConfig.rfcommChannel}")
             }
         }
     }

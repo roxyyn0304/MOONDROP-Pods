@@ -20,9 +20,9 @@ import moe.chenxy.oppopods.utils.miuiStrongToast.data.PodParams
 import org.json.JSONObject
 
 @SuppressLint("MissingPermission")
-object BluetoothUpstreamHeadsetHook : HookContext() {
-    private const val TAG = "OppoPods-Upstream"
-    private const val DESCRIPTOR = "com.android.bluetooth.ble.app.IMiuiHeadsetService"
+class BluetoothUpstreamHeadsetHook : HookContext() {
+    private val TAG = "OppoPods-Upstream"
+    private val DESCRIPTOR = "com.android.bluetooth.ble.app.IMiuiHeadsetService"
     private val knownOppoAddresses = linkedSetOf<String>()
     private val callbacks = linkedMapOf<IBinder, Any>()
     private val handler = Handler(Looper.getMainLooper())
