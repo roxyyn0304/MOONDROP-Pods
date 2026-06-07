@@ -1,6 +1,5 @@
 package moe.chenxy.oppopods.ui
 
-import android.content.res.Configuration
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.bluetooth.BluetoothAdapter
@@ -15,15 +14,11 @@ import android.content.pm.PackageManager
 import android.os.SystemClock
 import android.util.Log
 import android.widget.Toast
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -35,12 +30,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavKey
@@ -55,15 +47,8 @@ import moe.chenxy.oppopods.pods.NoiseControlMode
 import moe.chenxy.oppopods.pods.WearState
 import moe.chenxy.oppopods.pods.WearStatus
 import moe.chenxy.oppopods.pods.detectDeviceCapabilities
-import moe.chenxy.oppopods.ui.components.AppIcons
-import moe.chenxy.oppopods.ui.components.RestartScope
-import moe.chenxy.oppopods.ui.components.RestartScopeDialog
 import moe.chenxy.oppopods.ui.pages.AboutPage
 import moe.chenxy.oppopods.ui.pages.DeviceCapabilitiesPage
-import moe.chenxy.oppopods.ui.pages.DevicePickerPage
-import moe.chenxy.oppopods.ui.pages.HomePage
-import moe.chenxy.oppopods.ui.pages.PodDetailPage
-import moe.chenxy.oppopods.ui.pages.SettingsPage
 import moe.chenxy.oppopods.ui.pages.ThemeSettingsPage
 import moe.chenxy.oppopods.utils.RootManager
 import moe.chenxy.oppopods.utils.miuiStrongToast.data.BatteryParams
@@ -74,22 +59,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
-import top.yukonga.miuix.kmp.basic.FloatingNavigationBar
-import top.yukonga.miuix.kmp.basic.FloatingNavigationBarItem
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
-import top.yukonga.miuix.kmp.basic.NavigationBar
-import top.yukonga.miuix.kmp.basic.NavigationBarItem
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.basic.rememberTopAppBarState
-import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
-import top.yukonga.miuix.kmp.blur.textureBlur
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
-import top.yukonga.miuix.kmp.icon.extended.Refresh
-import top.yukonga.miuix.kmp.icon.extended.Settings
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 
@@ -98,12 +75,6 @@ sealed interface Screen : NavKey {
     data object About : Screen
     data object Theme : Screen
     data object DeviceCapabilities : Screen
-}
-
-private enum class MainTab(val icon: ImageVector) {
-    Module(AppIcons.Home),
-    Earphones(AppIcons.Headphones),
-    Settings(MiuixIcons.Settings),
 }
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -583,270 +554,139 @@ fun MainUI(
 
     val entryProvider = entryProvider<Screen> {
         entry<Screen.Main> {
-            val topAppBarScrollBehavior = MiuixScrollBehavior(rememberTopAppBarState())
-            val isLandscapeDetail = selectedTab == MainTab.Earphones &&
-                    showEarphoneDetail &&
-                    LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
-            val title = when (selectedTab) {
-                MainTab.Module -> stringResource(R.string.app_name)
-                MainTab.Earphones -> mainTitle.value.ifEmpty { stringResource(R.string.pod_info) }
-                MainTab.Settings -> stringResource(R.string.settings)
-            }
-
-            Scaffold(
-                topBar = {
-                    if (!isLandscapeDetail) {
-                        TopAppBar(
-                            title = title,
-                            largeTitle = title,
-                            scrollBehavior = topAppBarScrollBehavior,
-                            navigationIcon = {
-                                if (selectedTab == MainTab.Earphones && showEarphoneDetail) {
-                                    IconButton(onClick = { backToDevicePicker() }) {
-                                        Icon(
-                                            imageVector = MiuixIcons.Back,
-                                            contentDescription = "Back"
-                                        )
-                                    }
-                                }
-                            },
-                            actions = {
-                                if (selectedTab == MainTab.Earphones && showEarphoneDetail) {
-                                    IconButton(onClick = { openSystemHeadsetSettings() }) {
-                                        Icon(
-                                            imageVector = MiuixIcons.Settings,
-                                            contentDescription = stringResource(R.string.click_action_system_settings)
-                                        )
-                                    }
-                                } else if (selectedTab == MainTab.Module) {
-                                    IconButton(
-                                        onClick = {
-                                            if (!restartingScopes) {
-                                                showRestartScopeDialog = true
-                                            }
-                                        }
-                                    ) {
-                                        Icon(
-                                            imageVector = MiuixIcons.Refresh,
-                                            contentDescription = "Restart scope"
-                                        )
-                                    }
-                                }
-                            }
-                        )
+            MainTabsScaffold(
+                tabs = tabs,
+                selectedTab = selectedTab,
+                onTabSelected = { selectedTab = it },
+                floatingBottomBar = floatingBottomBar.value,
+                blurBottomBar = blurBottomBar.value,
+                backdrop = backdrop,
+                backgroundColor = backgroundColor,
+                overlayBottomBar = overlayBottomBar,
+                pageBottomContentPadding = pageBottomContentPadding,
+                xposedService = xposedService,
+                bluetoothServiceResponsive = bluetoothServiceResponsive,
+                bluetoothEnabled = bluetoothState.enabled,
+                bondedDeviceCount = bluetoothState.bondedCount,
+                showEarphoneDetail = showEarphoneDetail,
+                mainTitle = mainTitle.value,
+                displayTitle = displayTitle,
+                displayBattery = displayBattery,
+                displayWearStatus = displayWearStatus,
+                displayAnc = displayAnc,
+                onAncModeChange = { setAncMode(it) },
+                displayTransparencyVocalEnhancement = displayTransparencyVocalEnhancement,
+                onTransparencyVocalEnhancementChange = { setTransparencyVocalEnhancement(it) },
+                displayGameMode = displayGameMode,
+                onGameModeChange = { setGameMode(it) },
+                spatialAudioMode = spatialAudioMode.value,
+                onSpatialAudioModeChange = { setSpatialAudioMode(it) },
+                displayDualDeviceConnection = displayDualDeviceConnection,
+                onDualDeviceConnectionChange = { setDualDeviceConnection(it) },
+                spatialAudioSupported = displayCapabilities.spatialAudioSupported,
+                spatialSoundSupported = displayCapabilities.spatialSoundSwitchSupported,
+                adaptiveModeEnabled = displayCapabilities.adaptiveSupported,
+                connectedDeviceAddress = connectedDeviceAddress,
+                connectingDeviceAddress = connectingDeviceAddress,
+                showConnectErrorDialog = showConnectErrorDialog,
+                rfcommChannel = rfcommChannel.value,
+                onDeviceSelected = { onDeviceSelected(it) },
+                onConnectedDeviceClick = { onConnectedDeviceClick() },
+                onDeviceDisconnect = { onDeviceDisconnect(it) },
+                onRfcommChannelChange = {
+                    rfcommChannel.value = it
+                    ConfigManager.updateRfcommChannel(prefs, xposedService, it)
+                },
+                onDismissConnectError = { showConnectErrorDialog = false },
+                desktopIconHidden = desktopIconHidden,
+                onDesktopIconHiddenChange = {
+                    desktopIconHidden.value = it
+                    setLauncherIconHidden(context, it)
+                },
+                logLevel = logLevel,
+                onLogLevelChange = {
+                    logLevel.value = it
+                    ConfigManager.updateLogLevel(prefs, xposedService, it)
+                    broadcastConfigChanged(context, "com.android.bluetooth")
+                    broadcastConfigChanged(context, "com.milink.service")
+                    broadcastConfigChanged(context, "com.xiaomi.bluetooth")
+                },
+                islandMode = islandMode,
+                onIslandModeChange = {
+                    islandMode.value = it
+                    ConfigManager.updateIslandMode(prefs, xposedService, it)
+                    broadcastConfigChanged(context, "com.android.bluetooth")
+                    broadcastConfigChanged(context, "com.xiaomi.bluetooth")
+                },
+                islandShowTimings = islandShowTimings,
+                onIslandShowTimingsChange = {
+                    islandShowTimings.value = it
+                    ConfigManager.updateIslandShowTimings(prefs, xposedService, it)
+                    broadcastConfigChanged(context, "com.android.bluetooth")
+                },
+                appLanguage = appLanguage,
+                onAppLanguageChange = {
+                    appLanguage.value = it
+                    onAppLanguageChange(it)
+                },
+                autoGameMode = autoGameMode,
+                onAutoGameModeChange = {
+                    autoGameMode.value = it
+                    prefs.edit().putBoolean("auto_game_mode", it).apply()
+                    Intent(OppoPodsAction.ACTION_AUTO_GAME_MODE_CHANGED).apply {
+                        setPackage("com.android.bluetooth")
+                        putExtra("enabled", it)
+                        addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
+                        context.sendBroadcast(this)
                     }
                 },
-                bottomBar = {
-                    BottomNavigation(
-                        tabs = tabs,
-                        selectedTab = selectedTab,
-                        floating = floatingBottomBar.value,
-                        blur = blurBottomBar.value,
-                        backdrop = backdrop,
-                        onTabClick = { selectedTab = it },
-                    )
-                }
-            ) { padding ->
-                val contentPadding = if (overlayBottomBar) padding.withoutBottom() else padding
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(backgroundColor)
-                        .then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)
-                        .padding(contentPadding),
-                ) {
-                    AnimatedContent(
-                        targetState = selectedTab,
-                        label = "MainTabAnim"
-                    ) { tab ->
-                        when (tab) {
-                            MainTab.Module -> HomePage(
-                                modifier = Modifier
-                                    .overScrollVertical()
-                                    .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection),
-                                xposedService = xposedService,
-                                bluetoothServiceResponsive = bluetoothServiceResponsive,
-                                bluetoothEnabled = bluetoothState.enabled,
-                                bondedDeviceCount = bluetoothState.bondedCount,
-                                bottomContentPadding = pageBottomContentPadding,
-                            )
-
-                            MainTab.Earphones -> AnimatedContent(
-                                targetState = when {
-                                    showEarphoneDetail -> "detail"
-                                    else -> "picker"
-                                },
-                                label = "EarphonesPageAnim"
-                            ) { state ->
-                                when (state) {
-                                    "detail" -> PodDetailPage(
-                                        modifier = Modifier
-                                            .overScrollVertical()
-                                            .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection),
-                                        contentPadding = PaddingValues(0.dp),
-                                        bottomContentPadding = pageBottomContentPadding,
-                                        podName = displayTitle.ifEmpty { stringResource(R.string.pod_info) },
-                                        batteryParams = displayBattery,
-                                        wearStatus = displayWearStatus,
-                                        ancMode = displayAnc,
-                                        onAncModeChange = { setAncMode(it) },
-                                        transparencyVocalEnhancement = displayTransparencyVocalEnhancement,
-                                        onTransparencyVocalEnhancementChange = { setTransparencyVocalEnhancement(it) },
-                                        gameMode = displayGameMode,
-                                        onGameModeChange = { setGameMode(it) },
-                                        spatialAudioMode = spatialAudioMode.value,
-                                        onSpatialAudioModeChange = { setSpatialAudioMode(it) },
-                                        dualDeviceConnection = displayDualDeviceConnection,
-                                        onDualDeviceConnectionChange = { setDualDeviceConnection(it) },
-                                        spatialAudioSupported = displayCapabilities.spatialAudioSupported,
-                                        spatialSoundSupported = displayCapabilities.spatialSoundSwitchSupported,
-                                        adaptiveModeEnabled = displayCapabilities.adaptiveSupported
-                                    )
-
-                                    else -> DevicePickerPage(
-                                        connectedDeviceName = displayTitle,
-                                        connectedDeviceAddress = connectedDeviceAddress,
-                                        connectingDeviceAddress = connectingDeviceAddress,
-                                        showConnectError = showConnectErrorDialog,
-                                        rfcommChannel = rfcommChannel.value,
-                                        bottomContentPadding = pageBottomContentPadding,
-                                        onDeviceSelected = { onDeviceSelected(it) },
-                                        onConnectedDeviceClick = { onConnectedDeviceClick() },
-                                        onDeviceDisconnect = { onDeviceDisconnect(it) },
-                                        onRfcommChannelChange = {
-                                            rfcommChannel.value = it
-                                            ConfigManager.updateRfcommChannel(prefs, xposedService, it)
-                                        },
-                                        onDismissConnectError = {
-                                            showConnectErrorDialog = false
-                                        },
-                                    )
-                                }
-                            }
-
-                            MainTab.Settings -> SettingsPage(
-                                modifier = Modifier
-                                    .overScrollVertical()
-                                    .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection),
-                                contentPadding = PaddingValues(bottom = pageBottomContentPadding),
-                                desktopIconHidden = desktopIconHidden,
-                                onDesktopIconHiddenChange = {
-                                    desktopIconHidden.value = it
-                                    setLauncherIconHidden(context, it)
-                                },
-                                logLevel = logLevel,
-                                onLogLevelChange = {
-                                    logLevel.value = it
-                                    ConfigManager.updateLogLevel(prefs, xposedService, it)
-                                    broadcastConfigChanged(context, "com.android.bluetooth")
-                                    broadcastConfigChanged(context, "com.milink.service")
-                                    broadcastConfigChanged(context, "com.xiaomi.bluetooth")
-                                },
-                                islandMode = islandMode,
-                                onIslandModeChange = {
-                                    islandMode.value = it
-                                    ConfigManager.updateIslandMode(prefs, xposedService, it)
-                                    broadcastConfigChanged(context, "com.android.bluetooth")
-                                    broadcastConfigChanged(context, "com.xiaomi.bluetooth")
-                                },
-                                islandShowTimings = islandShowTimings,
-                                onIslandShowTimingsChange = {
-                                    islandShowTimings.value = it
-                                    ConfigManager.updateIslandShowTimings(prefs, xposedService, it)
-                                    broadcastConfigChanged(context, "com.android.bluetooth")
-                                },
-                                appLanguage = appLanguage,
-                                onAppLanguageChange = {
-                                    appLanguage.value = it
-                                    onAppLanguageChange(it)
-                                },
-                                autoGameMode = autoGameMode,
-                                onAutoGameModeChange = {
-                                    autoGameMode.value = it
-                                    prefs.edit().putBoolean("auto_game_mode", it).apply()
-                                    Intent(OppoPodsAction.ACTION_AUTO_GAME_MODE_CHANGED).apply {
-                                        setPackage("com.android.bluetooth")
-                                        putExtra("enabled", it)
-                                        addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
-                                        context.sendBroadcast(this)
-                                    }
-                                },
-                                gameModeImplementation = gameModeImplementation,
-                                onGameModeImplementationChange = {
-                                    gameModeImplementation.value = it
-                                    prefs.edit()
-                                        .putString(GameModeImplementation.PREF_KEY, it.preferenceValue)
-                                        .apply()
-                                    Intent(OppoPodsAction.ACTION_GAME_MODE_IMPLEMENTATION_CHANGED).apply {
-                                        setPackage("com.android.bluetooth")
-                                        putExtra(GameModeImplementation.PREF_KEY, it.preferenceValue)
-                                        addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
-                                        context.sendBroadcast(this)
-                                    }
-                                },
-                                notificationClickAction = notificationClickAction,
-                                onNotificationClickActionChange = {
-                                    notificationClickAction.value = it
-                                    ConfigManager.updateNotificationClickAction(prefs, xposedService, it)
-                                    broadcastConfigChanged(context, "com.xiaomi.bluetooth")
-                                },
-                                moreClickAction = moreClickAction,
-                                onMoreClickActionChange = {
-                                    moreClickAction.value = it
-                                    ConfigManager.updateMoreClickAction(prefs, xposedService, it)
-                                },
-                                adaptiveCapabilityOverride = adaptiveCapabilityOverride,
-                                spatialAudioCapabilityOverride = spatialAudioCapabilityOverride,
-                                spatialSoundSwitchCapabilityOverride = spatialSoundSwitchCapabilityOverride,
-                                onOpenDeviceCapabilities = { backStack.add(Screen.DeviceCapabilities) },
-                                fakeDeviceId = fakeDeviceId,
-                                onFakeDeviceIdChange = {
-                                    fakeDeviceId.value = it
-                                    ConfigManager.updateFakeDeviceId(prefs, xposedService, it)
-                                    broadcastConfigChanged(context, "com.android.bluetooth")
-                                    broadcastConfigChanged(context, "com.android.settings")
-                                    broadcastConfigChanged(context, "com.milink.service")
-                                    broadcastConfigChanged(context, "com.xiaomi.bluetooth")
-                                },
-                                onOpenTheme = { backStack.add(Screen.Theme) },
-                                onOpenAbout = { backStack.add(Screen.About) },
-                            )
-                        }
+                gameModeImplementation = gameModeImplementation,
+                onGameModeImplementationChange = {
+                    gameModeImplementation.value = it
+                    prefs.edit()
+                        .putString(GameModeImplementation.PREF_KEY, it.preferenceValue)
+                        .apply()
+                    Intent(OppoPodsAction.ACTION_GAME_MODE_IMPLEMENTATION_CHANGED).apply {
+                        setPackage("com.android.bluetooth")
+                        putExtra(GameModeImplementation.PREF_KEY, it.preferenceValue)
+                        addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
+                        context.sendBroadcast(this)
                     }
-
-                    if (isLandscapeDetail) {
-                        IconButton(
-                            modifier = Modifier
-                                .align(Alignment.TopStart)
-                                .padding(top = 8.dp, start = 8.dp),
-                            onClick = { backToDevicePicker() }
-                        ) {
-                            Icon(
-                                imageVector = MiuixIcons.Back,
-                                contentDescription = "Back"
-                            )
-                        }
-                        IconButton(
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(top = 8.dp, end = 8.dp),
-                            onClick = { openSystemHeadsetSettings() }
-                        ) {
-                            Icon(
-                                imageVector = MiuixIcons.Settings,
-                                contentDescription = stringResource(R.string.click_action_system_settings)
-                            )
-                        }
-                    }
-                }
-
-                RestartScopeDialog(
-                    show = showRestartScopeDialog,
-                    scopes = restartScopeOptions,
-                    onDismissRequest = { if (!restartingScopes) showRestartScopeDialog = false },
-                    onConfirm = { restartScopes(it) },
-                )
-            }
+                },
+                notificationClickAction = notificationClickAction,
+                onNotificationClickActionChange = {
+                    notificationClickAction.value = it
+                    ConfigManager.updateNotificationClickAction(prefs, xposedService, it)
+                    broadcastConfigChanged(context, "com.xiaomi.bluetooth")
+                },
+                moreClickAction = moreClickAction,
+                onMoreClickActionChange = {
+                    moreClickAction.value = it
+                    ConfigManager.updateMoreClickAction(prefs, xposedService, it)
+                },
+                adaptiveCapabilityOverride = adaptiveCapabilityOverride,
+                spatialAudioCapabilityOverride = spatialAudioCapabilityOverride,
+                spatialSoundSwitchCapabilityOverride = spatialSoundSwitchCapabilityOverride,
+                onOpenDeviceCapabilities = { backStack.add(Screen.DeviceCapabilities) },
+                fakeDeviceId = fakeDeviceId,
+                onFakeDeviceIdChange = {
+                    fakeDeviceId.value = it
+                    ConfigManager.updateFakeDeviceId(prefs, xposedService, it)
+                    broadcastConfigChanged(context, "com.android.bluetooth")
+                    broadcastConfigChanged(context, "com.android.settings")
+                    broadcastConfigChanged(context, "com.milink.service")
+                    broadcastConfigChanged(context, "com.xiaomi.bluetooth")
+                },
+                onOpenTheme = { backStack.add(Screen.Theme) },
+                onOpenAbout = { backStack.add(Screen.About) },
+                showRestartScopeDialog = showRestartScopeDialog,
+                restartingScopes = restartingScopes,
+                onShowRestartScopeDialog = { showRestartScopeDialog = true },
+                onDismissRestartScopeDialog = { showRestartScopeDialog = false },
+                onRestartScopes = { restartScopes(it) },
+                onBackToDevicePicker = { backToDevicePicker() },
+                onOpenSystemHeadsetSettings = { openSystemHeadsetSettings() },
+            )
         }
         entry<Screen.About> {
             val aboutScrollBehavior = MiuixScrollBehavior(rememberTopAppBarState())
@@ -997,79 +837,6 @@ fun MainUI(
             }
         }
     )
-}
-
-private val restartScopeOptions = listOf(
-    RestartScope("com.android.bluetooth", "Bluetooth"),
-    //RestartScope("com.android.settings", "Settings"),
-    RestartScope("com.milink.service", "MiLink Service"),
-    RestartScope("com.xiaomi.bluetooth", "Mi Bluetooth"),
-)
-
-private fun PaddingValues.withoutBottom(): PaddingValues {
-    return PaddingValues(
-        start = calculateLeftPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
-        top = calculateTopPadding(),
-        end = calculateRightPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
-        bottom = 0.dp,
-    )
-}
-
-@Composable
-private fun BottomNavigation(
-    tabs: List<MainTab>,
-    selectedTab: MainTab,
-    floating: Boolean,
-    blur: Boolean,
-    backdrop: LayerBackdrop?,
-    onTabClick: (MainTab) -> Unit,
-) {
-    val barModifier = if (blur && backdrop != null) {
-        Modifier.textureBlur(
-            backdrop = backdrop,
-            shape = RoundedCornerShape(if (floating) 50.dp else 0.dp),
-        )
-    } else {
-        Modifier
-    }
-
-    if (floating) {
-        FloatingNavigationBar(
-            modifier = barModifier,
-            color = if (blur) Color.Transparent else MiuixTheme.colorScheme.surfaceContainer,
-        ) {
-            tabs.forEach { tab ->
-                FloatingNavigationBarItem(
-                    selected = selectedTab == tab,
-                    onClick = { onTabClick(tab) },
-                    icon = tab.icon,
-                    label = tab.title(),
-                )
-            }
-        }
-    } else {
-        NavigationBar(
-            modifier = barModifier,
-            color = if (blur) Color.Transparent else MiuixTheme.colorScheme.surface,
-            showDivider = false,
-        ) {
-            tabs.forEach { tab ->
-                NavigationBarItem(
-                    selected = selectedTab == tab,
-                    onClick = { onTabClick(tab) },
-                    icon = tab.icon,
-                    label = tab.title(),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun MainTab.title(): String = when (this) {
-    MainTab.Module -> stringResource(R.string.module)
-    MainTab.Earphones -> stringResource(R.string.earphones)
-    MainTab.Settings -> stringResource(R.string.settings)
 }
 
 @Composable
