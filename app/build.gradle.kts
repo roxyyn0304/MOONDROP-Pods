@@ -22,8 +22,8 @@ android {
         applicationId = "moe.chenxy.oppopods"
         minSdk = 35
         targetSdk = 36
-        versionCode = 10
-        versionName = "2.0.2"
+        versionCode = 11
+        versionName = "2.0.3"
     }
 
     buildTypes {

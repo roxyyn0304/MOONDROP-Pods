@@ -6,6 +6,7 @@ import androidx.annotation.RequiresApi
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import moe.chenxy.oppopods.config.ConfigManager
+import moe.chenxy.oppopods.hook.milink.MiLinkServiceHook
 
 class HookEntry : XposedModule() {
     private val TAG = "OppoPods-HookEntry"
