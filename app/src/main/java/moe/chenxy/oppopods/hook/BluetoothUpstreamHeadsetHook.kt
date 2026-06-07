@@ -12,6 +12,7 @@ import android.os.Looper
 import android.os.Bundle
 import android.os.Parcel
 import java.lang.reflect.Method
+import moe.chenxy.oppopods.BuildConfig
 import moe.chenxy.oppopods.config.ConfigManager
 import moe.chenxy.oppopods.pods.RfcommController
 import moe.chenxy.oppopods.utils.miuiStrongToast.data.BatteryParams
@@ -811,7 +812,11 @@ class BluetoothUpstreamHeadsetHook : HookContext() {
         })
         ctx.sendBroadcast(Intent(OppoPodsAction.ACTION_PODS_ANC_CHANGED).apply {
             putExtra("status", mode)
-            setPackage(ctx.packageName)
+            setPackage(BuildConfig.APPLICATION_ID)
+            addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
+        })
+        ctx.sendBroadcast(Intent(OppoPodsAction.ACTION_REFRESH_STATUS).apply {
+            setPackage("com.android.bluetooth")
             addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
         })
         Log.d(TAG, "sendOppoAnc broadcast sent mode=$mode")
@@ -826,6 +831,15 @@ class BluetoothUpstreamHeadsetHook : HookContext() {
         }
         ctx.sendBroadcast(Intent(OppoPodsAction.ACTION_TRANSPARENCY_VOCAL_ENHANCEMENT_SET).apply {
             putExtra("enabled", enabled)
+            setPackage("com.android.bluetooth")
+            addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
+        })
+        ctx.sendBroadcast(Intent(OppoPodsAction.ACTION_PODS_TRANSPARENCY_VOCAL_ENHANCEMENT_CHANGED).apply {
+            putExtra("enabled", enabled)
+            setPackage(BuildConfig.APPLICATION_ID)
+            addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
+        })
+        ctx.sendBroadcast(Intent(OppoPodsAction.ACTION_REFRESH_STATUS).apply {
             setPackage("com.android.bluetooth")
             addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
         })

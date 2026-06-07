@@ -822,6 +822,8 @@ object RfcommController {
         }
         CoroutineScope(Dispatchers.IO).launch {
             sendPacketSafe(packet, "transparency vocal enhancement control")
+            delay(350)
+            sendStatusQueryPackets(immediateReconnect = false)
         }
     }
 
@@ -850,8 +852,11 @@ object RfcommController {
             8 -> Enums.ANC_NOISE_CANCEL_DEEP
             else -> return
         }
+        changeUIAncStatus(mode)
         CoroutineScope(Dispatchers.IO).launch {
             sendPacketSafe(packet, "anc control")
+            delay(350)
+            sendStatusQueryPackets(immediateReconnect = false)
         }
     }
 

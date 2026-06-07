@@ -349,7 +349,24 @@ fun MainUI(
                 setPackage("com.android.bluetooth")
                 addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
             })
+            context.sendBroadcast(Intent(OppoPodsAction.ACTION_REFRESH_STATUS).apply {
+                setPackage("com.android.bluetooth")
+                addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
+            })
             delay(30_000L)
+        }
+    }
+
+    LaunchedEffect(selectedTab, hookConnected.value) {
+        context.sendBroadcast(Intent(OppoPodsAction.ACTION_PODS_UI_INIT).apply {
+            setPackage("com.android.bluetooth")
+            addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
+        })
+        if (selectedTab == MainTab.Module || hookConnected.value) {
+            context.sendBroadcast(Intent(OppoPodsAction.ACTION_REFRESH_STATUS).apply {
+                setPackage("com.android.bluetooth")
+                addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
+            })
         }
     }
 
@@ -472,7 +489,10 @@ fun MainUI(
 
     fun refreshStatus() {
         if (hookConnected.value) {
-            context.sendBroadcast(Intent(OppoPodsAction.ACTION_REFRESH_STATUS))
+            context.sendBroadcast(Intent(OppoPodsAction.ACTION_REFRESH_STATUS).apply {
+                setPackage("com.android.bluetooth")
+                addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
+            })
         }
     }
 

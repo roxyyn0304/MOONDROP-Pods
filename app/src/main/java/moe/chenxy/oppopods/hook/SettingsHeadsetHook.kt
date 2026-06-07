@@ -9,6 +9,7 @@ import android.content.IntentFilter
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import moe.chenxy.oppopods.BuildConfig
 import moe.chenxy.oppopods.utils.miuiStrongToast.data.BatteryParams
 import moe.chenxy.oppopods.utils.miuiStrongToast.data.OppoPodsAction
 import moe.chenxy.oppopods.utils.miuiStrongToast.data.PodParams
@@ -228,7 +229,7 @@ object SettingsHeadsetHook : HookContext() {
                 val oppoMode = mode(args) ?: return@hookBefore
                 currentAnc = oppoMode
                 sendOppoAnc(oppoMode)
-                sendSettingsAncChanged(oppoMode)
+                sendAncChanged(oppoMode)
                 this.result = null
                 Log.d(TAG, "$methodName proxy command handled address=${device?.address} oppoMode=$oppoMode")
             }
@@ -356,7 +357,7 @@ object SettingsHeadsetHook : HookContext() {
                 val oppoMode = mode(args) ?: return@hookBefore
                 currentAnc = oppoMode
                 sendOppoAnc(oppoMode)
-                sendSettingsAncChanged(oppoMode)
+                sendAncChanged(oppoMode)
                 runCatching { callMethod(instance, "updateAncUi", settingsAncLevel(), false) }
                 injectFragmentStatus(instance)
                 result = null
@@ -653,16 +654,27 @@ object SettingsHeadsetHook : HookContext() {
             setPackage("com.android.bluetooth")
             addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
         })
+        ctx.sendBroadcast(Intent(OppoPodsAction.ACTION_PODS_TRANSPARENCY_VOCAL_ENHANCEMENT_CHANGED).apply {
+            putExtra("enabled", enabled)
+            setPackage(BuildConfig.APPLICATION_ID)
+            addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
+        })
+        ctx.sendBroadcast(Intent(OppoPodsAction.ACTION_REFRESH_STATUS).apply {
+            setPackage("com.android.bluetooth")
+            addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
+        })
         Log.d(TAG, "sendOppoTransparencyVocalEnhancement broadcast sent enabled=$enabled")
     }
 
-    private fun sendSettingsAncChanged(mode: Int) {
+    private fun sendAncChanged(mode: Int) {
         val ctx = context ?: return
-        ctx.sendBroadcast(Intent(OppoPodsAction.ACTION_PODS_ANC_CHANGED).apply {
-            putExtra("status", mode)
-            setPackage("com.android.settings")
-            addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
-        })
+        listOf(BuildConfig.APPLICATION_ID, "com.android.settings", "com.milink.service").forEach { targetPackage ->
+            ctx.sendBroadcast(Intent(OppoPodsAction.ACTION_PODS_ANC_CHANGED).apply {
+                putExtra("status", mode)
+                setPackage(targetPackage)
+                addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
+            })
+        }
     }
 
     @Suppress("DEPRECATION")

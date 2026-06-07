@@ -6,6 +6,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import moe.chenxy.oppopods.BuildConfig
 import moe.chenxy.oppopods.pods.RfcommController
 import moe.chenxy.oppopods.utils.miuiStrongToast.data.BatteryParams
 import moe.chenxy.oppopods.utils.miuiStrongToast.data.OppoPodsAction
@@ -117,6 +118,7 @@ object MiLinkServiceHook : HookContext() {
                 if (!isOppoPod(device)) return@hookBefore
                 currentAnc = oppoAnc
                 sendOppoAnc(oppoAnc)
+                sendAncChanged(oppoAnc)
                 this.result = result
                 Log.d(TAG, "$className.$methodName handled address=${device.address} oppoAnc=$oppoAnc result=$result")
             }
@@ -136,7 +138,7 @@ object MiLinkServiceHook : HookContext() {
                 }
                 currentAnc = oppoAnc
                 sendOppoAnc(oppoAnc, instanceContext)
-                sendMiLinkAncChanged(oppoAnc, instanceContext)
+                sendAncChanged(oppoAnc, instanceContext)
                 notifyHeadsetPropertyChanged(instance, device, 8)
                 notifyHeadsetPropertyChanged(instance, device, 4)
                 this.result = miLinkAncState()
@@ -308,14 +310,16 @@ object MiLinkServiceHook : HookContext() {
         Log.d(TAG, "sendOppoAnc broadcast sent mode=$mode")
     }
 
-    private fun sendMiLinkAncChanged(mode: Int, fallbackContext: Context? = null) {
+    private fun sendAncChanged(mode: Int, fallbackContext: Context? = null) {
         val ctx = fallbackContext ?: context ?: return
-        ctx.sendBroadcast(Intent(OppoPodsAction.ACTION_PODS_ANC_CHANGED).apply {
-            putExtra("status", mode)
-            setPackage("com.milink.service")
-            addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
-        })
-        Log.d(TAG, "sendMiLinkAncChanged broadcast sent mode=$mode")
+        listOf(BuildConfig.APPLICATION_ID, "com.milink.service", "com.android.settings").forEach { targetPackage ->
+            ctx.sendBroadcast(Intent(OppoPodsAction.ACTION_PODS_ANC_CHANGED).apply {
+                putExtra("status", mode)
+                setPackage(targetPackage)
+                addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
+            })
+        }
+        Log.d(TAG, "sendAncChanged broadcast sent mode=$mode")
     }
 
     private fun notifyHeadsetPropertyChanged(controller: Any?, device: BluetoothDevice, updateType: Int) {
