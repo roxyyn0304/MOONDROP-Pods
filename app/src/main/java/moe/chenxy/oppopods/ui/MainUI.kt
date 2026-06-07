@@ -54,10 +54,12 @@ import moe.chenxy.oppopods.pods.GameModeImplementation
 import moe.chenxy.oppopods.pods.NoiseControlMode
 import moe.chenxy.oppopods.pods.WearState
 import moe.chenxy.oppopods.pods.WearStatus
+import moe.chenxy.oppopods.pods.detectDeviceCapabilities
 import moe.chenxy.oppopods.ui.components.AppIcons
 import moe.chenxy.oppopods.ui.components.RestartScope
 import moe.chenxy.oppopods.ui.components.RestartScopeDialog
 import moe.chenxy.oppopods.ui.pages.AboutPage
+import moe.chenxy.oppopods.ui.pages.DeviceCapabilitiesPage
 import moe.chenxy.oppopods.ui.pages.DevicePickerPage
 import moe.chenxy.oppopods.ui.pages.HomePage
 import moe.chenxy.oppopods.ui.pages.PodDetailPage
@@ -95,6 +97,7 @@ sealed interface Screen : NavKey {
     data object Main : Screen
     data object About : Screen
     data object Theme : Screen
+    data object DeviceCapabilities : Screen
 }
 
 private enum class MainTab(val icon: ImageVector) {
@@ -174,8 +177,8 @@ fun MainUI(
     val islandShowTimings = remember { mutableStateOf(appConfig.islandShowTimings) }
     val rfcommChannel = remember { mutableStateOf(appConfig.rfcommChannel) }
     val spatialAudioMode = remember { mutableStateOf(prefs.getInt("spatial_audio_mode", ConfigManager.SPATIAL_AUDIO_OFF)) }
-    // Adaptive模式偏好设置（持久化存储），默认开启
-    val adaptiveMode = remember { mutableStateOf(prefs.getBoolean("adaptive_mode", true)) }
+    val adaptiveCapabilityOverride = remember { mutableStateOf(appConfig.adaptiveCapabilityOverride) }
+    val spatialAudioCapabilityOverride = remember { mutableStateOf(appConfig.spatialAudioCapabilityOverride) }
 
     val canShowDetailPage = hookConnected.value
     val showEarphoneDetail = canShowDetailPage && !showDevicePicker
@@ -186,12 +189,16 @@ fun MainUI(
     val displayGameMode = gameMode.value
     val displayTransparencyVocalEnhancement = transparencyVocalEnhancement.value
     val displayTitle = mainTitle.value.takeIf { it.isNotBlank() && hookConnected.value } ?: mainTitle.value
-    val displaySpatialAudioSupported = isSpatialAudioSupported(displayTitle)
+    val displayCapabilities = detectDeviceCapabilities(
+        deviceName = displayTitle,
+        adaptiveOverride = adaptiveCapabilityOverride.value,
+        spatialAudioOverride = spatialAudioCapabilityOverride.value,
+    )
 
-    LaunchedEffect(displayTitle, displaySpatialAudioSupported) {
+    LaunchedEffect(displayTitle, displayCapabilities) {
         Log.i(
             "OppoPods",
-            "spatial audio support check: deviceName='$displayTitle', supported=$displaySpatialAudioSupported"
+            "capability check: deviceName='$displayTitle', adaptive=${displayCapabilities.adaptiveSupported}, spatial=${displayCapabilities.spatialAudioSupported}"
         )
     }
 
@@ -654,8 +661,8 @@ fun MainUI(
                                         onGameModeChange = { setGameMode(it) },
                                         spatialAudioMode = spatialAudioMode.value,
                                         onSpatialAudioModeChange = { setSpatialAudioMode(it) },
-                                        spatialAudioSupported = displaySpatialAudioSupported,
-                                        adaptiveModeEnabled = adaptiveMode.value
+                                        spatialAudioSupported = displayCapabilities.spatialAudioSupported,
+                                        adaptiveModeEnabled = displayCapabilities.adaptiveSupported
                                     )
 
                                     else -> DevicePickerPage(
@@ -750,18 +757,9 @@ fun MainUI(
                                     moreClickAction.value = it
                                     ConfigManager.updateMoreClickAction(prefs, xposedService, it)
                                 },
-                                adaptiveMode = adaptiveMode,
-                                onAdaptiveModeChange = {
-                                    adaptiveMode.value = it
-                                    prefs.edit().putBoolean("adaptive_mode", it).apply()
-                                    Intent(OppoPodsAction.ACTION_ADAPTIVE_MODE_CHANGED).apply {
-                                        putExtra("enabled", it)
-                                        context.sendBroadcast(this)
-                                    }
-                                    if (!it && displayAnc == NoiseControlMode.ADAPTIVE) {
-                                        setAncMode(NoiseControlMode.NOISE_CANCELLATION)
-                                    }
-                                },
+                                adaptiveCapabilityOverride = adaptiveCapabilityOverride,
+                                spatialAudioCapabilityOverride = spatialAudioCapabilityOverride,
+                                onOpenDeviceCapabilities = { backStack.add(Screen.DeviceCapabilities) },
                                 fakeDeviceId = fakeDeviceId,
                                 onFakeDeviceIdChange = {
                                     fakeDeviceId.value = it
@@ -879,6 +877,55 @@ fun MainUI(
                         onFloatingBottomBarChange = onFloatingBottomBarChange,
                         blurBottomBar = blurBottomBar,
                         onBlurBottomBarChange = onBlurBottomBarChange,
+                    )
+                }
+            }
+        }
+        entry<Screen.DeviceCapabilities> {
+            val capabilitiesScrollBehavior = MiuixScrollBehavior(rememberTopAppBarState())
+
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = stringResource(R.string.device_capabilities),
+                        largeTitle = stringResource(R.string.device_capabilities),
+                        scrollBehavior = capabilitiesScrollBehavior,
+                        navigationIcon = {
+                            IconButton(onClick = { backStack.removeLast() }) {
+                                Icon(imageVector = MiuixIcons.Back, contentDescription = "Back")
+                            }
+                        }
+                    )
+                }
+            ) { padding ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(backgroundColor)
+                        .padding(padding),
+                ) {
+                    DeviceCapabilitiesPage(
+                        modifier = Modifier
+                            .overScrollVertical()
+                            .nestedScroll(capabilitiesScrollBehavior.nestedScrollConnection),
+                        contentPadding = PaddingValues(bottom = pageBottomContentPadding),
+                        adaptiveCapabilityOverride = adaptiveCapabilityOverride,
+                        onAdaptiveCapabilityOverrideChange = {
+                            adaptiveCapabilityOverride.value = it
+                            ConfigManager.updateAdaptiveCapabilityOverride(prefs, xposedService, it)
+                            broadcastConfigChanged(context, "com.android.bluetooth")
+                            if (!detectDeviceCapabilities(displayTitle, it, spatialAudioCapabilityOverride.value).adaptiveSupported &&
+                                displayAnc == NoiseControlMode.ADAPTIVE
+                            ) {
+                                setAncMode(NoiseControlMode.NOISE_CANCELLATION)
+                            }
+                        },
+                        spatialAudioCapabilityOverride = spatialAudioCapabilityOverride,
+                        onSpatialAudioCapabilityOverrideChange = {
+                            spatialAudioCapabilityOverride.value = it
+                            ConfigManager.updateSpatialAudioCapabilityOverride(prefs, xposedService, it)
+                            broadcastConfigChanged(context, "com.android.bluetooth")
+                        },
                     )
                 }
             }
@@ -1011,11 +1058,6 @@ private fun setLauncherIconHidden(context: Context, hidden: Boolean) {
         PackageManager.COMPONENT_ENABLED_STATE_ENABLED
     }
     context.packageManager.setComponentEnabledSetting(component, state, PackageManager.DONT_KILL_APP)
-}
-
-private fun isSpatialAudioSupported(deviceName: String): Boolean {
-    val normalizedName = deviceName.lowercase().filter { it.isLetterOrDigit() }
-    return "encox3" in normalizedName || "oppoencox3" in normalizedName
 }
 
 private fun broadcastConfigChanged(context: Context, packageName: String) {

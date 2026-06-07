@@ -46,8 +46,9 @@ fun SettingsPage(
     onNotificationClickActionChange: (Int) -> Unit = {},
     moreClickAction: MutableState<Int> = mutableStateOf(ConfigManager.MORE_CLICK_MODULE),
     onMoreClickActionChange: (Int) -> Unit = {},
-    adaptiveMode: MutableState<Boolean> = mutableStateOf(true),
-    onAdaptiveModeChange: (Boolean) -> Unit = {},
+    adaptiveCapabilityOverride: MutableState<Int> = mutableStateOf(ConfigManager.CAPABILITY_OVERRIDE_AUTO),
+    spatialAudioCapabilityOverride: MutableState<Int> = mutableStateOf(ConfigManager.CAPABILITY_OVERRIDE_AUTO),
+    onOpenDeviceCapabilities: () -> Unit = {},
     fakeDeviceId: MutableState<String> = mutableStateOf(ConfigManager.DEFAULT_FAKE_DEVICE_ID),
     onFakeDeviceIdChange: (String) -> Unit = {},
     onOpenTheme: () -> Unit = {},
@@ -118,6 +119,14 @@ fun SettingsPage(
         stringResource(R.string.game_mode_implementation_standard),
         stringResource(R.string.game_mode_implementation_compatible),
     )
+    val adaptiveCapabilityText = capabilityOverrideLabel(adaptiveCapabilityOverride.value)
+    val spatialAudioCapabilityText = capabilityOverrideLabel(spatialAudioCapabilityOverride.value)
+    val deviceCapabilitySummary = listOf(
+        stringResource(R.string.adaptive_mode) to adaptiveCapabilityText,
+        stringResource(R.string.spatial_audio) to spatialAudioCapabilityText,
+    ).joinToString(" / ") { (label, value) ->
+        "$label: $value"
+    }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -165,12 +174,10 @@ fun SettingsPage(
 
         item {
             Card(modifier = Modifier.padding(top = 12.dp)) {
-                // Adaptive模式开关：控制耳机自适应降噪模式的启用状态
-                SwitchPreference(
-                    title = stringResource(R.string.adaptive_mode),
-                    summary = stringResource(R.string.adaptive_mode_summary),
-                    checked = adaptiveMode.value,
-                    onCheckedChange = { onAdaptiveModeChange(it) }
+                BasicComponent(
+                    title = stringResource(R.string.device_capabilities),
+                    summary = deviceCapabilitySummary,
+                    onClick = onOpenDeviceCapabilities,
                 )
                 OverlayDropdownPreference(
                     title = stringResource(R.string.island_mode),
@@ -240,4 +247,11 @@ fun SettingsPage(
             }
         }
     }
+}
+
+@Composable
+private fun capabilityOverrideLabel(value: Int): String = when (value) {
+    ConfigManager.CAPABILITY_OVERRIDE_FORCE_ENABLED -> stringResource(R.string.capability_force_enabled)
+    ConfigManager.CAPABILITY_OVERRIDE_FORCE_DISABLED -> stringResource(R.string.capability_force_disabled)
+    else -> stringResource(R.string.capability_auto)
 }

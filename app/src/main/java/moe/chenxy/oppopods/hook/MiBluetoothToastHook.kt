@@ -22,6 +22,7 @@ import moe.chenxy.oppopods.config.ConfigManager
 import moe.chenxy.oppopods.utils.miuiStrongToast.data.BatteryParams
 import moe.chenxy.oppopods.utils.miuiStrongToast.data.OppoPodsAction
 import moe.chenxy.oppopods.R
+import moe.chenxy.oppopods.pods.detectDeviceCapabilities
 
 @SuppressLint("MissingPermission")
 object MiBluetoothToastHook : HookContext() {
@@ -93,10 +94,11 @@ object MiBluetoothToastHook : HookContext() {
                     context.resources.getString(miheadset_notification_Disconnect),
                     PendingIntent.getBroadcast(context, 0, intent, 201326592)
                 )
-                // 循环切换降噪模式：降噪 → 自适应 → 通透 → 关，指定 package 确保广播路由到 com.android.bluetooth 进程
+                // 循环切换降噪模式，指定 package 确保广播路由到 com.android.bluetooth 进程
                 val ancCycleIntent = Intent(OppoPodsAction.ACTION_CYCLE_ANC)
                 ancCycleIntent.setPackage("com.android.bluetooth")
                 ancCycleIntent.setIdentifier("BTHeadset$address")
+                ancCycleIntent.putExtra("device_name", alias ?: bluetoothDevice.name ?: "")
                 val moduleContext = context.createPackageContext(
                     "moe.chenxy.oppopods", Context.CONTEXT_IGNORE_SECURITY
                 )
@@ -256,24 +258,22 @@ object MiBluetoothToastHook : HookContext() {
                             } else if (p1?.action == OppoPodsAction.ACTION_PODS_ANC_CHANGED) {
                                 // 同步耳机实际 ANC 状态到本地缓存，确保下次循环切换时状态准确
                                 localAncMode = p1.getIntExtra("status", 1)
-                            } else if (p1?.action == OppoPodsAction.ACTION_ADAPTIVE_MODE_CHANGED) {
-                                // 接收来自 App 端设置页面的 Adaptive 模式开关状态变更，无需本地动作
-                                // cycle ANC 时通过 prefs bridge 实时读取偏好，此广播仅确保通知已送达
-                                val adaptiveEnabled = p1.getBooleanExtra("enabled", true)
-                                // 若关闭 Adaptive 且本地缓存的当前模式为 Adaptive，重置为降噪模式
-                                if (!adaptiveEnabled && localAncMode == 4) {
-                                    localAncMode = 2
-                                }
                             } else if (p1?.action == OppoPodsAction.ACTION_CYCLE_ANC) {
-                                // 循环切换降噪模式：读取Adaptive模式偏好，关闭时跳过Adaptive仅三模式循环
-                                // 使用 prefs bridge 读取与 App 端同一 SharedPreferences 文件，确保状态同步
-                                val adaptiveEnabled = prefs.getBoolean("adaptive_mode", true)
-                                localAncMode = when (localAncMode) {
-                                    2 -> if (adaptiveEnabled) 4 else 3  // NC → Adaptive（若启用）或 Transparency
-                                    4 -> 3  // Adaptive → Transparency
-                                    3 -> 1  // Transparency → OFF
-                                    else -> 2  // OFF → NC
+                                val capabilities = detectDeviceCapabilities(
+                                    deviceName = p1.getStringExtra("device_name").orEmpty(),
+                                    adaptiveOverride = prefs.getInt(
+                                        ConfigManager.PREF_KEY_ADAPTIVE_CAPABILITY_OVERRIDE,
+                                        ConfigManager.CAPABILITY_OVERRIDE_AUTO
+                                    ),
+                                    spatialAudioOverride = ConfigManager.CAPABILITY_OVERRIDE_AUTO,
+                                )
+                                val cycle = if (capabilities.adaptiveSupported) {
+                                    listOf(2, 4, 3, 1)
+                                } else {
+                                    listOf(2, 3, 1)
                                 }
+                                val currentIndex = cycle.indexOf(if (localAncMode in 5..8) 2 else localAncMode)
+                                localAncMode = cycle[(currentIndex + 1).floorMod(cycle.size)]
                                 Intent(OppoPodsAction.ACTION_ANC_SELECT).apply {
                                     putExtra("status", localAncMode)
                                     addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
@@ -289,10 +289,10 @@ object MiBluetoothToastHook : HookContext() {
                     intentFilter.addAction(OppoPodsAction.ACTION_CYCLE_ANC)
                     // 监听耳机实际 ANC 状态变更广播，保持 localAncMode 与 RfcommController 同步
                     intentFilter.addAction(OppoPodsAction.ACTION_PODS_ANC_CHANGED)
-                    // 监听 Adaptive 模式开关状态变更广播，确保跨进程实时同步
-                    intentFilter.addAction(OppoPodsAction.ACTION_ADAPTIVE_MODE_CHANGED)
                     context.registerReceiver(broadcastReceiver, intentFilter,
                         Context.RECEIVER_EXPORTED)
         }
     }
+
+    private fun Int.floorMod(divisor: Int): Int = ((this % divisor) + divisor) % divisor
 }

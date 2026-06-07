@@ -65,8 +65,6 @@ object RfcommController {
     private var gameModeImplementation: GameModeImplementation = GameModeImplementation.STANDARD
     private var rfcommChannel: Int = ConfigManager.DEFAULT_RFCOMM_CHANNEL
     private var lastGameModeStatusUpdateMs: Long = 0L
-    // Adaptive模式状态缓存，通过广播同步确保跨进程实时一致，避免 SharedPreferences 跨进程缓存导致读取过时值
-    private var adaptiveModeEnabled: Boolean = true
     private var lastKnownCaseBattery: Int = 0
     private var lastKnownCaseCharging: Boolean = false
     private var cachedDeviceName: String = ""
@@ -216,12 +214,10 @@ object RfcommController {
             OppoPodsAction.ACTION_CYCLE_ANC -> {
                 cycleAnc()
             }
-            OppoPodsAction.ACTION_ADAPTIVE_MODE_CHANGED -> {
-                // 跨进程同步 Adaptive 模式开关状态，确保 cycleAnc() 使用实时值
-                adaptiveModeEnabled = intent.getBooleanExtra("enabled", true)
-                Log.d(TAG, "Adaptive mode synced: $adaptiveModeEnabled")
-                // 若关闭 Adaptive 且当前处于 Adaptive 模式，自动切换至降噪模式
-                if (!adaptiveModeEnabled && currentAnc == 4) {
+            OppoPodsAction.ACTION_CONFIG_CHANGED -> {
+                ConfigManager.refreshFromPrefs(mPrefs)
+                Log.d(TAG, "Config synced")
+                if (!currentCapabilities().adaptiveSupported && currentAnc == 4) {
                     setANCMode(2)
                 }
             }
@@ -428,14 +424,12 @@ object RfcommController {
         if (appRequested) {
             markAppUiActive()
         }
-        // 初始化 Adaptive 模式状态缓存，从 SharedPreferences 读取当前值
-        adaptiveModeEnabled = mPrefs.getBoolean("adaptive_mode", true)
         autoGameModeEnabled = mPrefs.getBoolean("auto_game_mode", false)
         gameModeImplementation = GameModeImplementation.fromPreference(
             mPrefs.getString(GameModeImplementation.PREF_KEY, null)
         )
         rfcommChannel = ConfigManager.refreshFromPrefs(mPrefs).rfcommChannel
-        Log.d(TAG, "Adaptive mode initial: $adaptiveModeEnabled")
+        Log.d(TAG, "Adaptive support initial: ${currentCapabilities().adaptiveSupported}")
         Log.d(TAG, "Auto game mode initial: $autoGameModeEnabled")
         Log.d(TAG, "Game mode implementation initial: ${gameModeImplementation.preferenceValue}")
         Log.d(TAG, "RFCOMM channel initial: $rfcommChannel")
@@ -452,7 +446,7 @@ object RfcommController {
                 this.addAction(OppoPodsAction.ACTION_TRANSPARENCY_VOCAL_ENHANCEMENT_SET)
                 this.addAction(OppoPodsAction.ACTION_SPATIAL_AUDIO_SET)
                 this.addAction(OppoPodsAction.ACTION_CYCLE_ANC)
-                this.addAction(OppoPodsAction.ACTION_ADAPTIVE_MODE_CHANGED)
+                this.addAction(OppoPodsAction.ACTION_CONFIG_CHANGED)
             }, Context.RECEIVER_EXPORTED)
             receiverRegistered = true
         }
@@ -867,15 +861,25 @@ object RfcommController {
     }
 
     fun cycleAnc() {
-        // 使用广播同步的缓存值，避免 SharedPreferences 跨进程缓存导致读取过时值
-        val next = when (currentAnc) {
-            2, 5, 6, 7, 8 -> if (adaptiveModeEnabled) 4 else 3  // NC → Adaptive（若启用）或 Transparency
-            4 -> 3  // Adaptive → Transparency
-            3 -> 1  // Transparency → OFF
-            else -> 7  // OFF or unknown → NC medium
+        val cycle = if (currentCapabilities().adaptiveSupported) {
+            listOf(2, 4, 3, 1)
+        } else {
+            listOf(2, 3, 1)
         }
+        val currentIndex = cycle.indexOf(if (currentAnc in 5..8) 2 else currentAnc)
+        val next = cycle[(currentIndex + 1).floorMod(cycle.size)]
         setANCMode(next)
     }
+
+    private fun currentCapabilities(): DeviceCapabilities {
+        return detectDeviceCapabilities(
+            deviceName = if (::mDevice.isInitialized) mDevice.name ?: cachedDeviceName else cachedDeviceName,
+            adaptiveOverride = ConfigManager.adaptiveCapabilityOverride(),
+            spatialAudioOverride = ConfigManager.spatialAudioCapabilityOverride(),
+        )
+    }
+
+    private fun Int.floorMod(divisor: Int): Int = ((this % divisor) + divisor) % divisor
 
     fun setANCMode(mode: Int) {
         Log.d(TAG, "setANCMode: $mode")

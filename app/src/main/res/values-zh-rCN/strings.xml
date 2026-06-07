@@ -14,7 +14,7 @@
     <string name="disable_game_mode">关闭游戏模式</string>
     <string name="auto_game_mode">连接时自动开启游戏模式</string>
     <string name="spatial_audio">空间音频</string>
-    <string name="spatial_audio_summary">为 Enco X3 选择空间音频模式</string>
+    <string name="spatial_audio_summary">选择空间音频模式</string>
     <string name="spatial_audio_fixed">固定</string>
     <string name="spatial_audio_head_tracking">头部跟踪</string>
     <string name="game_mode_implementation">游戏模式实现方式</string>
@@ -89,6 +89,11 @@
     <string name="cycle_anc">切换降噪</string>
     <string name="adaptive_mode">自适应模式</string>
     <string name="adaptive_mode_summary">为兼容耳机启用自适应降噪模式，关闭后将隐藏该选项并禁用相关音频处理</string>
+    <string name="device_capabilities">耳机能力</string>
+    <string name="capability_auto">自动检测</string>
+    <string name="capability_force_enabled">强制开启</string>
+    <string name="capability_force_disabled">强制关闭</string>
+    <string name="capability_override_summary">自动时跟随型号检测；检测不准时可在这里覆盖。</string>
     <string name="island_mode">超级岛</string>
     <string name="island_mode_summary">选择要显示的电量超级岛</string>
     <string name="island_mode_none">不显示</string>

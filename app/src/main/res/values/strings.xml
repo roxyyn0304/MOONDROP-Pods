@@ -13,7 +13,7 @@
     <string name="disable_game_mode">Disable Game Mode</string>
     <string name="auto_game_mode">Auto-enable game mode on connect</string>
     <string name="spatial_audio">Spatial Audio</string>
-    <string name="spatial_audio_summary">Choose the spatial audio mode for Enco X3</string>
+    <string name="spatial_audio_summary">Choose the spatial audio mode</string>
     <string name="spatial_audio_fixed">Fixed</string>
     <string name="spatial_audio_head_tracking">Head Tracking</string>
     <string name="game_mode_implementation">Game mode implementation</string>
@@ -88,6 +88,11 @@
     <string name="cycle_anc">Cycle ANC</string>
     <string name="adaptive_mode">Adaptive Mode</string>
     <string name="adaptive_mode_summary">Enable Adaptive noise control mode for compatible earphones</string>
+    <string name="device_capabilities">Earphone capabilities</string>
+    <string name="capability_auto">Auto detect</string>
+    <string name="capability_force_enabled">Force enabled</string>
+    <string name="capability_force_disabled">Force disabled</string>
+    <string name="capability_override_summary">Auto follows model detection. Override only when detection is wrong.</string>
     <string name="island_mode">Super Island</string>
     <string name="island_mode_summary">Choose which battery island is displayed</string>
     <string name="island_mode_none">none</string>
