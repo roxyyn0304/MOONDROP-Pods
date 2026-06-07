@@ -60,6 +60,7 @@ object RfcommController {
     private var currentAnc: Int = 1
     private var currentGameMode: Boolean = false
     private var currentTransparencyVocalEnhancement: Boolean = false
+    private var currentSpatialAudioMode: Int = SpatialAudioMode.OFF
     private var autoGameModeEnabled: Boolean = false
     private var gameModeImplementation: GameModeImplementation = GameModeImplementation.STANDARD
     private var rfcommChannel: Int = ConfigManager.DEFAULT_RFCOMM_CHANNEL
@@ -149,6 +150,12 @@ object RfcommController {
         }
     }
 
+    private fun changeUISpatialAudioStatus(mode: Int) {
+        sendAppStatusBroadcast(OppoPodsAction.ACTION_PODS_SPATIAL_AUDIO_CHANGED) {
+            this.putExtra("mode", mode)
+        }
+    }
+
     fun handleUIEvent(intent: Intent) {
         when (intent.action) {
             OppoPodsAction.ACTION_PODS_UI_INIT -> {
@@ -161,6 +168,7 @@ object RfcommController {
                 changeUIAncStatus(currentAnc)
                 changeUIGameModeStatus(currentGameMode)
                 changeUITransparencyVocalEnhancementStatus(currentTransparencyVocalEnhancement)
+                changeUISpatialAudioStatus(currentSpatialAudioMode)
                 if (::mDevice.isInitialized && isConnected) {
                     sendAppStatusBroadcast(OppoPodsAction.ACTION_PODS_CONNECTED) {
                         this.putExtra("address", mDevice.address)
@@ -200,6 +208,10 @@ object RfcommController {
             OppoPodsAction.ACTION_TRANSPARENCY_VOCAL_ENHANCEMENT_SET -> {
                 val enabled = intent.getBooleanExtra("enabled", false)
                 setTransparencyVocalEnhancement(enabled)
+            }
+            OppoPodsAction.ACTION_SPATIAL_AUDIO_SET -> {
+                val mode = intent.getIntExtra("mode", SpatialAudioMode.OFF)
+                setSpatialAudioMode(mode)
             }
             OppoPodsAction.ACTION_CYCLE_ANC -> {
                 cycleAnc()
@@ -438,6 +450,7 @@ object RfcommController {
                 this.addAction(OppoPodsAction.ACTION_AUTO_GAME_MODE_CHANGED)
                 this.addAction(OppoPodsAction.ACTION_GAME_MODE_IMPLEMENTATION_CHANGED)
                 this.addAction(OppoPodsAction.ACTION_TRANSPARENCY_VOCAL_ENHANCEMENT_SET)
+                this.addAction(OppoPodsAction.ACTION_SPATIAL_AUDIO_SET)
                 this.addAction(OppoPodsAction.ACTION_CYCLE_ANC)
                 this.addAction(OppoPodsAction.ACTION_ADAPTIVE_MODE_CHANGED)
             }, Context.RECEIVER_EXPORTED)
@@ -684,6 +697,20 @@ object RfcommController {
             return
         }
 
+        val spatialAudioResult = SpatialAudioParser.parseModeNotify(packet)
+        if (spatialAudioResult != null) {
+            Log.i(TAG, "Spatial audio mode notify: packet=${packet.toHexString(HexFormat.UpperCase)}, mode=$spatialAudioResult")
+            currentSpatialAudioMode = spatialAudioResult
+            changeUISpatialAudioStatus(spatialAudioResult)
+            return
+        }
+
+        val spatialAudioSetStatus = SpatialAudioParser.parseSetResponseStatus(packet)
+        if (spatialAudioSetStatus != null) {
+            Log.i(TAG, "Spatial audio set response: packet=${packet.toHexString(HexFormat.UpperCase)}, status=$spatialAudioSetStatus")
+            return
+        }
+
         // Try parse as ANC mode response
         val ancResult = AncModeParser.parse(packet)
         if (ancResult != null) {
@@ -750,6 +777,7 @@ object RfcommController {
         currentAnc = 1
         currentGameMode = false
         currentTransparencyVocalEnhancement = false
+        currentSpatialAudioMode = SpatialAudioMode.OFF
         lastKnownCaseBattery = 0
         lastKnownCaseCharging = false
         changeUIConnectionState("disconnected")
@@ -824,6 +852,17 @@ object RfcommController {
             sendPacketSafe(packet, "transparency vocal enhancement control")
             delay(350)
             sendStatusQueryPackets(immediateReconnect = false)
+        }
+    }
+
+    fun setSpatialAudioMode(mode: Int) {
+        val normalizedMode = mode.coerceIn(SpatialAudioMode.OFF, SpatialAudioMode.HEAD_TRACKING)
+        val packet = Enums.spatialAudioPacket(normalizedMode)
+        Log.i(TAG, "setSpatialAudioMode: $normalizedMode, packet=${packet.toHexString(HexFormat.UpperCase)}")
+        currentSpatialAudioMode = normalizedMode
+        changeUISpatialAudioStatus(normalizedMode)
+        CoroutineScope(Dispatchers.IO).launch {
+            sendPacketSafe(packet, "spatial audio control")
         }
     }
 

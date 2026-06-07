@@ -15,6 +15,8 @@ data class AppConfig(
     val notificationClickAction: Int = ConfigManager.NOTIFICATION_CLICK_MODULE_POPUP,
     val moreClickAction: Int = ConfigManager.MORE_CLICK_MODULE,
     val rfcommChannel: Int = ConfigManager.DEFAULT_RFCOMM_CHANNEL,
+    val adaptiveCapabilityOverride: Int = ConfigManager.CAPABILITY_OVERRIDE_AUTO,
+    val spatialAudioCapabilityOverride: Int = ConfigManager.CAPABILITY_OVERRIDE_AUTO,
 )
 
 object ConfigManager {
@@ -28,6 +30,8 @@ object ConfigManager {
     const val PREF_KEY_NOTIFICATION_CLICK_ACTION = "notification_click_action"
     const val PREF_KEY_MORE_CLICK_ACTION = "more_click_action"
     const val PREF_KEY_RFCOMM_CHANNEL = "rfcomm_channel"
+    const val PREF_KEY_ADAPTIVE_CAPABILITY_OVERRIDE = "adaptive_capability_override"
+    const val PREF_KEY_SPATIAL_AUDIO_CAPABILITY_OVERRIDE = "spatial_audio_capability_override"
     const val DEFAULT_FAKE_DEVICE_ID = "01010607"
     const val DEFAULT_RFCOMM_CHANNEL = 15
     val RFCOMM_CHANNELS = listOf(5, 15)
@@ -47,6 +51,12 @@ object ConfigManager {
     const val MORE_CLICK_HEYTAP = 0
     const val MORE_CLICK_SYSTEM_SETTINGS = 1
     const val MORE_CLICK_MODULE = 2
+    const val SPATIAL_AUDIO_OFF = 0
+    const val SPATIAL_AUDIO_FIXED = 1
+    const val SPATIAL_AUDIO_HEAD_TRACKING = 2
+    const val CAPABILITY_OVERRIDE_AUTO = 0
+    const val CAPABILITY_OVERRIDE_FORCE_ENABLED = 1
+    const val CAPABILITY_OVERRIDE_FORCE_DISABLED = 2
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -85,6 +95,10 @@ object ConfigManager {
     fun moreClickAction(): Int = current().moreClickAction.coerceIn(MORE_CLICK_HEYTAP, MORE_CLICK_MODULE)
 
     fun rfcommChannel(): Int = current().rfcommChannel.normalizedRfcommChannel()
+
+    fun adaptiveCapabilityOverride(): Int = current().adaptiveCapabilityOverride.normalizedCapabilityOverride()
+
+    fun spatialAudioCapabilityOverride(): Int = current().spatialAudioCapabilityOverride.normalizedCapabilityOverride()
 
     fun fakeSupport(): String = "${fakeDeviceId()},000000000000000010000000"
 
@@ -128,6 +142,16 @@ object ConfigManager {
         save(prefs, service, config)
     }
 
+    fun updateAdaptiveCapabilityOverride(prefs: SharedPreferences, service: XposedService?, override: Int) {
+        val config = current().copy(adaptiveCapabilityOverride = override.normalizedCapabilityOverride())
+        save(prefs, service, config)
+    }
+
+    fun updateSpatialAudioCapabilityOverride(prefs: SharedPreferences, service: XposedService?, override: Int) {
+        val config = current().copy(spatialAudioCapabilityOverride = override.normalizedCapabilityOverride())
+        save(prefs, service, config)
+    }
+
     fun save(prefs: SharedPreferences, config: AppConfig) {
         val oldConfig = cachedConfig
         val normalized = config.copy(fakeDeviceId = config.fakeDeviceId.normalizedFakeDeviceId())
@@ -158,6 +182,8 @@ object ConfigManager {
             .putInt(PREF_KEY_NOTIFICATION_CLICK_ACTION, config.notificationClickAction)
             .putInt(PREF_KEY_MORE_CLICK_ACTION, config.moreClickAction)
             .putInt(PREF_KEY_RFCOMM_CHANNEL, config.rfcommChannel)
+            .putInt(PREF_KEY_ADAPTIVE_CAPABILITY_OVERRIDE, config.adaptiveCapabilityOverride)
+            .putInt(PREF_KEY_SPATIAL_AUDIO_CAPABILITY_OVERRIDE, config.spatialAudioCapabilityOverride)
             .commit()
     }
 
@@ -169,6 +195,8 @@ object ConfigManager {
         val directNotificationClickAction = prefs.getInt(PREF_KEY_NOTIFICATION_CLICK_ACTION, Int.MIN_VALUE)
         val directMoreClickAction = prefs.getInt(PREF_KEY_MORE_CLICK_ACTION, Int.MIN_VALUE)
         val directRfcommChannel = prefs.getInt(PREF_KEY_RFCOMM_CHANNEL, Int.MIN_VALUE)
+        val directAdaptiveCapabilityOverride = prefs.getInt(PREF_KEY_ADAPTIVE_CAPABILITY_OVERRIDE, Int.MIN_VALUE)
+        val directSpatialAudioCapabilityOverride = prefs.getInt(PREF_KEY_SPATIAL_AUDIO_CAPABILITY_OVERRIDE, Int.MIN_VALUE)
         val raw = prefs.getString(PREF_KEY_CONFIG_JSON, null)
         logPrefsSnapshot(source, prefs, directFakeDeviceId, raw)
         val config = raw?.let {
@@ -184,6 +212,8 @@ object ConfigManager {
                 notificationClickAction = directNotificationClickAction.takeIf { it != Int.MIN_VALUE } ?: config.notificationClickAction,
                 moreClickAction = directMoreClickAction.takeIf { it != Int.MIN_VALUE } ?: migratedMoreClickAction,
                 rfcommChannel = directRfcommChannel.takeIf { it != Int.MIN_VALUE } ?: config.rfcommChannel,
+                adaptiveCapabilityOverride = directAdaptiveCapabilityOverride.takeIf { it != Int.MIN_VALUE } ?: config.adaptiveCapabilityOverride,
+                spatialAudioCapabilityOverride = directSpatialAudioCapabilityOverride.takeIf { it != Int.MIN_VALUE } ?: config.spatialAudioCapabilityOverride,
             ).normalized()
         }
         return config.copy(
@@ -194,6 +224,8 @@ object ConfigManager {
             notificationClickAction = directNotificationClickAction.takeIf { it != Int.MIN_VALUE } ?: config.notificationClickAction,
             moreClickAction = directMoreClickAction.takeIf { it != Int.MIN_VALUE } ?: migratedMoreClickAction,
             rfcommChannel = directRfcommChannel.takeIf { it != Int.MIN_VALUE } ?: config.rfcommChannel,
+            adaptiveCapabilityOverride = directAdaptiveCapabilityOverride.takeIf { it != Int.MIN_VALUE } ?: config.adaptiveCapabilityOverride,
+            spatialAudioCapabilityOverride = directSpatialAudioCapabilityOverride.takeIf { it != Int.MIN_VALUE } ?: config.spatialAudioCapabilityOverride,
         ).normalized()
     }
 
@@ -205,11 +237,15 @@ object ConfigManager {
         notificationClickAction = notificationClickAction.coerceIn(NOTIFICATION_CLICK_MODULE_POPUP, NOTIFICATION_CLICK_HEYTAP),
         moreClickAction = moreClickAction.coerceIn(MORE_CLICK_HEYTAP, MORE_CLICK_MODULE),
         rfcommChannel = rfcommChannel.normalizedRfcommChannel(),
+        adaptiveCapabilityOverride = adaptiveCapabilityOverride.normalizedCapabilityOverride(),
+        spatialAudioCapabilityOverride = spatialAudioCapabilityOverride.normalizedCapabilityOverride(),
     )
 
     private fun String.normalizedFakeDeviceId(): String = trim().takeIf { it.isNotEmpty() } ?: DEFAULT_FAKE_DEVICE_ID
 
     private fun Int.normalizedRfcommChannel(): Int = takeIf { it in RFCOMM_CHANNELS } ?: DEFAULT_RFCOMM_CHANNEL
+
+    private fun Int.normalizedCapabilityOverride(): Int = coerceIn(CAPABILITY_OVERRIDE_AUTO, CAPABILITY_OVERRIDE_FORCE_DISABLED)
 
     private fun Set<Int>.normalizedIslandShowTimings(): Set<Int> = filterTo(mutableSetOf()) {
         it in ISLAND_SHOW_TIMING_CONNECTED..ISLAND_SHOW_TIMING_IN_CASE
@@ -255,6 +291,12 @@ object ConfigManager {
             }
             if (oldConfig.rfcommChannel != newConfig.rfcommChannel) {
                 add("rfcommChannel=${oldConfig.rfcommChannel}->${newConfig.rfcommChannel}")
+            }
+            if (oldConfig.adaptiveCapabilityOverride != newConfig.adaptiveCapabilityOverride) {
+                add("adaptiveCapabilityOverride=${oldConfig.adaptiveCapabilityOverride}->${newConfig.adaptiveCapabilityOverride}")
+            }
+            if (oldConfig.spatialAudioCapabilityOverride != newConfig.spatialAudioCapabilityOverride) {
+                add("spatialAudioCapabilityOverride=${oldConfig.spatialAudioCapabilityOverride}->${newConfig.spatialAudioCapabilityOverride}")
             }
         }
     }

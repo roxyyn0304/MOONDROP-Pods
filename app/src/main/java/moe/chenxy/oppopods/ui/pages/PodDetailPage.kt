@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
 import moe.chenxy.oppopods.R
+import moe.chenxy.oppopods.config.ConfigManager
 import moe.chenxy.oppopods.pods.NoiseControlMode
 import moe.chenxy.oppopods.pods.WearStatus
 import moe.chenxy.oppopods.ui.components.AncSwitch
@@ -32,6 +33,7 @@ import moe.chenxy.oppopods.ui.components.PodStatus
 import moe.chenxy.oppopods.utils.miuiStrongToast.data.BatteryParams
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference
 
 @Composable
@@ -48,6 +50,9 @@ fun PodDetailPage(
     onTransparencyVocalEnhancementChange: (Boolean) -> Unit = {},
     gameMode: Boolean = false,
     onGameModeChange: (Boolean) -> Unit = {},
+    spatialAudioMode: Int = ConfigManager.SPATIAL_AUDIO_OFF,
+    onSpatialAudioModeChange: (Int) -> Unit = {},
+    spatialAudioSupported: Boolean = false,
     adaptiveModeEnabled: Boolean = true
 ) {
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -99,6 +104,9 @@ fun PodDetailPage(
                     onTransparencyVocalEnhancementChange = onTransparencyVocalEnhancementChange,
                     gameMode = gameMode,
                     onGameModeChange = onGameModeChange,
+                    spatialAudioMode = spatialAudioMode,
+                    onSpatialAudioModeChange = onSpatialAudioModeChange,
+                    spatialAudioSupported = spatialAudioSupported,
                     adaptiveModeEnabled = adaptiveModeEnabled,
                     bottomContentPadding = bottomContentPadding
                 )
@@ -132,6 +140,9 @@ fun PodDetailPage(
             onTransparencyVocalEnhancementChange = onTransparencyVocalEnhancementChange,
             gameMode = gameMode,
             onGameModeChange = onGameModeChange,
+            spatialAudioMode = spatialAudioMode,
+            onSpatialAudioModeChange = onSpatialAudioModeChange,
+            spatialAudioSupported = spatialAudioSupported,
             adaptiveModeEnabled = adaptiveModeEnabled,
             bottomContentPadding = bottomContentPadding
         )
@@ -147,9 +158,18 @@ private fun LazyListScope.podControlItems(
     onTransparencyVocalEnhancementChange: (Boolean) -> Unit,
     gameMode: Boolean,
     onGameModeChange: (Boolean) -> Unit,
+    spatialAudioMode: Int,
+    onSpatialAudioModeChange: (Int) -> Unit,
+    spatialAudioSupported: Boolean,
     adaptiveModeEnabled: Boolean,
     bottomContentPadding: Dp
 ) {
+    val spatialAudioValues = listOf(
+        ConfigManager.SPATIAL_AUDIO_OFF,
+        ConfigManager.SPATIAL_AUDIO_FIXED,
+        ConfigManager.SPATIAL_AUDIO_HEAD_TRACKING,
+    )
+
     item {
         Card(
             modifier = Modifier.padding(horizontal = 12.dp)
@@ -186,6 +206,20 @@ private fun LazyListScope.podControlItems(
                 checked = gameMode,
                 onCheckedChange = onGameModeChange
             )
+            if (spatialAudioSupported) {
+                val spatialAudioOptions = listOf(
+                    stringResource(R.string.off),
+                    stringResource(R.string.spatial_audio_fixed),
+                    stringResource(R.string.spatial_audio_head_tracking),
+                )
+                OverlayDropdownPreference(
+                    title = stringResource(R.string.spatial_audio),
+                    summary = stringResource(R.string.spatial_audio_summary),
+                    items = spatialAudioOptions,
+                    selectedIndex = spatialAudioValues.indexOf(spatialAudioMode).coerceAtLeast(0),
+                    onSelectedIndexChange = { onSpatialAudioModeChange(spatialAudioValues[it]) }
+                )
+            }
         }
     }
     item {

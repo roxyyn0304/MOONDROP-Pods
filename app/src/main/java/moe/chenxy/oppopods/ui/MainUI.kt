@@ -173,6 +173,7 @@ fun MainUI(
     val islandMode = remember { mutableStateOf(appConfig.islandMode) }
     val islandShowTimings = remember { mutableStateOf(appConfig.islandShowTimings) }
     val rfcommChannel = remember { mutableStateOf(appConfig.rfcommChannel) }
+    val spatialAudioMode = remember { mutableStateOf(prefs.getInt("spatial_audio_mode", ConfigManager.SPATIAL_AUDIO_OFF)) }
     // Adaptive模式偏好设置（持久化存储），默认开启
     val adaptiveMode = remember { mutableStateOf(prefs.getBoolean("adaptive_mode", true)) }
 
@@ -184,7 +185,15 @@ fun MainUI(
     val displayAnc = ancMode.value
     val displayGameMode = gameMode.value
     val displayTransparencyVocalEnhancement = transparencyVocalEnhancement.value
-    val displayTitle = if (hookConnected.value) mainTitle.value else ""
+    val displayTitle = mainTitle.value.takeIf { it.isNotBlank() && hookConnected.value } ?: mainTitle.value
+    val displaySpatialAudioSupported = isSpatialAudioSupported(displayTitle)
+
+    LaunchedEffect(displayTitle, displaySpatialAudioSupported) {
+        Log.i(
+            "OppoPods",
+            "spatial audio support check: deviceName='$displayTitle', supported=$displaySpatialAudioSupported"
+        )
+    }
 
     LaunchedEffect(displayTitle) {
         if (displayTitle.isNotEmpty()) {
@@ -258,6 +267,10 @@ fun MainUI(
                         transparencyVocalEnhancement.value = p1.getBooleanExtra("enabled", false)
                     }
 
+                    OppoPodsAction.ACTION_PODS_SPATIAL_AUDIO_CHANGED -> {
+                        spatialAudioMode.value = p1.getIntExtra("mode", ConfigManager.SPATIAL_AUDIO_OFF)
+                    }
+
                     OppoPodsAction.ACTION_PODS_CONNECTED -> {
                         val deviceName = p1.getStringExtra("device_name")
                         val shouldOpenEarphones = connectingDeviceAddress != null || !hasAppliedDefaultTab
@@ -318,6 +331,7 @@ fun MainUI(
             addAction(OppoPodsAction.ACTION_PODS_WEAR_STATUS_CHANGED)
             addAction(OppoPodsAction.ACTION_PODS_GAME_MODE_CHANGED)
             addAction(OppoPodsAction.ACTION_PODS_TRANSPARENCY_VOCAL_ENHANCEMENT_CHANGED)
+            addAction(OppoPodsAction.ACTION_PODS_SPATIAL_AUDIO_CHANGED)
             addAction(OppoPodsAction.ACTION_PODS_CONNECTED)
             addAction(OppoPodsAction.ACTION_PODS_CONNECTION_STATE_CHANGED)
             addAction(OppoPodsAction.ACTION_PODS_DISCONNECTED)
@@ -426,6 +440,18 @@ fun MainUI(
         hookConnectionState = "connecting"
         Intent(OppoPodsAction.ACTION_CONNECT_POD_REQUEST).apply {
             putExtra("device", device)
+            setPackage("com.android.bluetooth")
+            addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
+            context.sendBroadcast(this)
+        }
+    }
+
+    fun setSpatialAudioMode(mode: Int) {
+        val normalizedMode = mode.coerceIn(ConfigManager.SPATIAL_AUDIO_OFF, ConfigManager.SPATIAL_AUDIO_HEAD_TRACKING)
+        spatialAudioMode.value = normalizedMode
+        prefs.edit().putInt("spatial_audio_mode", normalizedMode).apply()
+        Intent(OppoPodsAction.ACTION_SPATIAL_AUDIO_SET).apply {
+            this.putExtra("mode", normalizedMode)
             setPackage("com.android.bluetooth")
             addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
             context.sendBroadcast(this)
@@ -626,6 +652,9 @@ fun MainUI(
                                         onTransparencyVocalEnhancementChange = { setTransparencyVocalEnhancement(it) },
                                         gameMode = displayGameMode,
                                         onGameModeChange = { setGameMode(it) },
+                                        spatialAudioMode = spatialAudioMode.value,
+                                        onSpatialAudioModeChange = { setSpatialAudioMode(it) },
+                                        spatialAudioSupported = displaySpatialAudioSupported,
                                         adaptiveModeEnabled = adaptiveMode.value
                                     )
 
@@ -982,6 +1011,11 @@ private fun setLauncherIconHidden(context: Context, hidden: Boolean) {
         PackageManager.COMPONENT_ENABLED_STATE_ENABLED
     }
     context.packageManager.setComponentEnabledSetting(component, state, PackageManager.DONT_KILL_APP)
+}
+
+private fun isSpatialAudioSupported(deviceName: String): Boolean {
+    val normalizedName = deviceName.lowercase().filter { it.isLetterOrDigit() }
+    return "encox3" in normalizedName || "oppoencox3" in normalizedName
 }
 
 private fun broadcastConfigChanged(context: Context, packageName: String) {
