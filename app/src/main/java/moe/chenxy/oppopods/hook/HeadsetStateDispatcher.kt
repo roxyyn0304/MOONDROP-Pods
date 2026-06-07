@@ -59,7 +59,8 @@ object HeadsetStateDispatcher : HookContext() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 if (context == null) return
                 when (intent?.action) {
-                    OppoPodsAction.ACTION_PODS_UI_INIT -> {
+                    OppoPodsAction.ACTION_PODS_UI_INIT,
+                    OppoPodsAction.ACTION_REFRESH_STATUS -> {
                         context.sendBroadcast(Intent(OppoPodsAction.ACTION_MODULE_BLUETOOTH_SERVICE_ALIVE).apply {
                             setPackage(BuildConfig.APPLICATION_ID)
                             addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
@@ -79,6 +80,7 @@ object HeadsetStateDispatcher : HookContext() {
             }
         }, IntentFilter().apply {
             addAction(OppoPodsAction.ACTION_PODS_UI_INIT)
+            addAction(OppoPodsAction.ACTION_REFRESH_STATUS)
             addAction(OppoPodsAction.ACTION_CONNECT_POD_REQUEST)
             addAction(OppoPodsAction.ACTION_DISCONNECT_POD_REQUEST)
         }, Context.RECEIVER_EXPORTED)

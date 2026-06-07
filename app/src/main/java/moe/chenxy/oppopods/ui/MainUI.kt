@@ -29,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -115,6 +116,7 @@ fun MainUI(
     var connectedDeviceAddress by remember { mutableStateOf("") }
     var showConnectErrorDialog by remember { mutableStateOf(false) }
     var hookConnectionState by remember { mutableStateOf("disconnected") }
+    var pendingOpenEarphonesAfterPickerLoaded by remember { mutableStateOf(false) }
     var lastBluetoothServiceAliveMs by remember { mutableStateOf(0L) }
     var bluetoothServiceResponsive by remember { mutableStateOf(false) }
     val backgroundColor = appBackground()
@@ -195,14 +197,24 @@ fun MainUI(
             val shouldOpenEarphones = connectingDeviceAddress != null
             connectingDeviceAddress = null
             showConnectErrorDialog = false
-            showDevicePicker = false
             if (shouldOpenEarphones) {
                 selectedTab = MainTab.Earphones
+                hasAppliedDefaultTab = true
+                pendingOpenEarphonesAfterPickerLoaded = true
             }
         } else if (hookConnectionState == "error") {
             connectingDeviceAddress = null
+            pendingOpenEarphonesAfterPickerLoaded = false
             showConnectErrorDialog = true
             showDevicePicker = true
+        }
+    }
+
+    LaunchedEffect(pendingOpenEarphonesAfterPickerLoaded, connectingDeviceAddress, hookConnected.value) {
+        if (pendingOpenEarphonesAfterPickerLoaded && connectingDeviceAddress == null && hookConnected.value) {
+            withFrameNanos { }
+            pendingOpenEarphonesAfterPickerLoaded = false
+            showDevicePicker = false
         }
     }
 
@@ -265,9 +277,9 @@ fun MainUI(
                         hookConnected.value = true
                         hookConnectionState = "connected"
                         if (shouldOpenEarphones) {
-                            showDevicePicker = false
                             selectedTab = MainTab.Earphones
                             hasAppliedDefaultTab = true
+                            pendingOpenEarphonesAfterPickerLoaded = true
                         }
                         Log.i("OppoPods", "pod connected via hook: $deviceName")
                     }
@@ -327,16 +339,10 @@ fun MainUI(
             addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
         }, Context.RECEIVER_EXPORTED)
 
-        context.sendBroadcast(Intent(OppoPodsAction.ACTION_PODS_UI_INIT).apply {
-            setPackage("com.android.bluetooth")
-            addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
-        })
+        sendBluetoothModuleBroadcast(context, OppoPodsAction.ACTION_PODS_UI_INIT)
 
         onDispose {
-            context.sendBroadcast(Intent(OppoPodsAction.ACTION_PODS_UI_CLOSED).apply {
-                setPackage("com.android.bluetooth")
-                addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
-            })
+            sendBluetoothModuleBroadcast(context, OppoPodsAction.ACTION_PODS_UI_CLOSED)
             try {
                 context.unregisterReceiver(broadcastReceiver)
             } catch (_: Exception) {}
@@ -346,28 +352,16 @@ fun MainUI(
 
     LaunchedEffect(Unit) {
         while (true) {
-            context.sendBroadcast(Intent(OppoPodsAction.ACTION_PODS_UI_INIT).apply {
-                setPackage("com.android.bluetooth")
-                addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
-            })
-            context.sendBroadcast(Intent(OppoPodsAction.ACTION_REFRESH_STATUS).apply {
-                setPackage("com.android.bluetooth")
-                addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
-            })
+            sendBluetoothModuleBroadcast(context, OppoPodsAction.ACTION_PODS_UI_INIT)
+            sendBluetoothModuleBroadcast(context, OppoPodsAction.ACTION_REFRESH_STATUS)
             delay(30_000L)
         }
     }
 
     LaunchedEffect(selectedTab, hookConnected.value) {
-        context.sendBroadcast(Intent(OppoPodsAction.ACTION_PODS_UI_INIT).apply {
-            setPackage("com.android.bluetooth")
-            addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
-        })
+        sendBluetoothModuleBroadcast(context, OppoPodsAction.ACTION_PODS_UI_INIT)
         if (selectedTab == MainTab.Module || hookConnected.value) {
-            context.sendBroadcast(Intent(OppoPodsAction.ACTION_REFRESH_STATUS).apply {
-                setPackage("com.android.bluetooth")
-                addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
-            })
+            sendBluetoothModuleBroadcast(context, OppoPodsAction.ACTION_REFRESH_STATUS)
         }
     }
 
@@ -421,6 +415,7 @@ fun MainUI(
 
     fun clearPodConnectionState() {
         connectingDeviceAddress = null
+        pendingOpenEarphonesAfterPickerLoaded = false
         connectedDeviceAddress = ""
         mainTitle.value = ""
         batteryParams.value = BatteryParams()
@@ -434,6 +429,7 @@ fun MainUI(
 
     fun onDeviceSelected(device: BluetoothDevice) {
         connectingDeviceAddress = device.address
+        pendingOpenEarphonesAfterPickerLoaded = false
         connectedDeviceAddress = device.address
         showConnectErrorDialog = false
         showDevicePicker = true
@@ -470,6 +466,7 @@ fun MainUI(
 
     fun onDeviceDisconnect(device: BluetoothDevice) {
         connectingDeviceAddress = null
+        pendingOpenEarphonesAfterPickerLoaded = false
         if (device.address == connectedDeviceAddress) {
             hookConnected.value = false
             hookConnectionState = "disconnected"
@@ -486,6 +483,7 @@ fun MainUI(
 
     fun onConnectedDeviceClick() {
         if (connectedDeviceAddress.isBlank() && mainTitle.value.isBlank()) return
+        pendingOpenEarphonesAfterPickerLoaded = false
         hookConnected.value = true
         hookConnectionState = "connected"
         showDevicePicker = false
@@ -859,6 +857,16 @@ private fun readBluetoothState(context: Context): BluetoothSummary {
 
 private fun wearStateFromExtra(value: Int): WearState? {
     return WearState.fromValue(value)
+}
+
+private fun sendBluetoothModuleBroadcast(context: Context, action: String) {
+    listOf("com.android.bluetooth", "com.xiaomi.bluetooth").forEach { packageName ->
+        Intent(action).apply {
+            setPackage(packageName)
+            addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
+            context.sendBroadcast(this)
+        }
+    }
 }
 
 private fun isLauncherIconHidden(context: Context): Boolean {
