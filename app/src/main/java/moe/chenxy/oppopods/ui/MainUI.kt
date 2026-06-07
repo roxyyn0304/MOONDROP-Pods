@@ -448,6 +448,19 @@ fun MainUI(
         }
     }
 
+    fun clearPodConnectionState() {
+        connectingDeviceAddress = null
+        connectedDeviceAddress = ""
+        mainTitle.value = ""
+        batteryParams.value = BatteryParams()
+        wearStatus.value = WearStatus()
+        ancMode.value = NoiseControlMode.OFF
+        hookConnected.value = false
+        hookConnectionState = "disconnected"
+        showConnectErrorDialog = false
+        showDevicePicker = true
+    }
+
     fun onDeviceSelected(device: BluetoothDevice) {
         connectingDeviceAddress = device.address
         connectedDeviceAddress = device.address
@@ -557,6 +570,9 @@ fun MainUI(
             }
             restartingScopes = false
             showRestartScopeDialog = false
+            if (success && "com.android.bluetooth" in packages) {
+                clearPodConnectionState()
+            }
             Toast.makeText(
                 context,
                 if (success) R.string.restart_scope_success else R.string.restart_scope_failed,
