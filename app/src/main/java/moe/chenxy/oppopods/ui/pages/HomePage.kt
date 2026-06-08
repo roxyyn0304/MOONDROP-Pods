@@ -31,6 +31,7 @@ import io.github.libxposed.service.XposedService
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import moe.chenxy.oppopods.BuildConfig
 import moe.chenxy.oppopods.R
 import moe.chenxy.oppopods.ui.components.AppIcons
 import top.yukonga.miuix.kmp.basic.Card
@@ -233,7 +234,7 @@ private fun homeSystemInfo(context: Context): HomeSystemInfo {
         systemVersion = Build.DISPLAY,
         appVersion = "$versionName ($versionCode)",
         androidVersion = "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})",
-        buildDate = buildDate(packageInfo.lastUpdateTime),
+        buildDate = buildDate(BuildConfig.BUILD_TIMESTAMP),
         deviceModel = listOf(Build.MANUFACTURER, Build.MODEL).filter { it.isNotBlank() }.joinToString(" "),
     )
 }
