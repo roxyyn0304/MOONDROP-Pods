@@ -47,6 +47,7 @@ fun HomePage(
     bluetoothServiceResponsive: Boolean,
     bluetoothEnabled: Boolean,
     bondedDeviceCount: Int,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
     bottomContentPadding: Dp = 16.dp,
 ) {
     val context = LocalContext.current
@@ -54,7 +55,12 @@ fun HomePage(
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 12.dp, top = 12.dp, end = 12.dp, bottom = bottomContentPadding),
+        contentPadding = PaddingValues(
+            start = 12.dp,
+            top = contentPadding.calculateTopPadding() + 12.dp,
+            end = 12.dp,
+            bottom = bottomContentPadding,
+        ),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {

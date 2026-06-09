@@ -70,6 +70,7 @@ fun DevicePickerPage(
     connectedDeviceAddress: String = "",
     connectingDeviceAddress: String? = null,
     showConnectError: Boolean = false,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
     bottomContentPadding: Dp = 16.dp,
     onDeviceSelected: (BluetoothDevice) -> Unit,
     onConnectedDeviceClick: () -> Unit = {},
@@ -145,7 +146,12 @@ fun DevicePickerPage(
     Box(Modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 12.dp, top = 12.dp, end = 12.dp, bottom = bottomContentPadding + 64.dp),
+            contentPadding = PaddingValues(
+                start = 12.dp,
+                top = contentPadding.calculateTopPadding() + 12.dp,
+                end = 12.dp,
+                bottom = bottomContentPadding + 12.dp,
+            ),
         ) {
             item {
                 Row(

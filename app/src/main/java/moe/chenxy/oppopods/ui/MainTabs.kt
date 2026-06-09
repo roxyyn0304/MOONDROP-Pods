@@ -7,8 +7,11 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.EaseInOut
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -26,6 +29,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -58,7 +62,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import io.github.libxposed.service.XposedService
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import moe.chenxy.oppopods.R
@@ -104,11 +109,62 @@ import top.yukonga.miuix.kmp.icon.extended.Settings
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
+import kotlin.math.abs
 
 internal enum class MainTab(val icon: ImageVector) {
     Module(AppIcons.Home),
     Earphones(AppIcons.Headphones),
     Settings(MiuixIcons.Settings),
+}
+
+private class MainTabsPagerState(
+    val pagerState: PagerState,
+    private val coroutineScope: kotlinx.coroutines.CoroutineScope,
+) {
+    var selectedPage by mutableIntStateOf(pagerState.currentPage)
+        private set
+
+    var isNavigating by mutableStateOf(false)
+        private set
+
+    private var navJob: Job? = null
+
+    fun animateToPage(targetPage: Int) {
+        if (targetPage == selectedPage) return
+
+        navJob?.cancel()
+        selectedPage = targetPage
+        isNavigating = true
+
+        val layoutInfo = pagerState.layoutInfo
+        val pageSize = layoutInfo.pageSize + layoutInfo.pageSpacing
+        val distanceInPages = targetPage - pagerState.currentPage - pagerState.currentPageOffsetFraction
+        val scrollPixels = distanceInPages * pageSize
+        val duration = 100 * abs(targetPage - pagerState.currentPage).coerceAtLeast(2) + 100
+
+        navJob = coroutineScope.launch {
+            val currentJob = coroutineContext.job
+            try {
+                pagerState.animateScrollBy(
+                    value = scrollPixels,
+                    animationSpec = tween(easing = EaseInOut, durationMillis = duration),
+                )
+            } finally {
+                if (navJob == currentJob) {
+                    isNavigating = false
+                    if (pagerState.currentPage != targetPage) {
+                        selectedPage = pagerState.currentPage
+                    }
+                }
+            }
+        }
+    }
+
+    fun syncPage() {
+        if (!isNavigating && selectedPage != pagerState.currentPage) {
+            selectedPage = pagerState.currentPage
+        }
+    }
 }
 
 @Composable
@@ -188,20 +244,17 @@ internal fun MainTabsScaffold(
     onSavePodImages: (String, String, Map<PodImageResource, Uri?>, Set<PodImageResource>) -> Unit,
     onSavePodImageBytes: (String, String, Map<PodImageResource, ByteArray>) -> Unit,
 ) {
-    val topAppBarScrollBehavior = MiuixScrollBehavior(rememberTopAppBarState())
     val pagerState = rememberPagerState(
         initialPage = selectedTab.ordinal,
         pageCount = { tabs.size },
     )
-    var targetTabPage by remember { mutableIntStateOf(selectedTab.ordinal) }
+    val coroutineScope = rememberCoroutineScope()
+    val mainPagerState = remember(pagerState, coroutineScope) {
+        MainTabsPagerState(pagerState, coroutineScope)
+    }
     val isLandscapeDetail = selectedTab == MainTab.Earphones &&
             showEarphoneDetail &&
             LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
-    val title = when (selectedTab) {
-        MainTab.Module -> stringResource(R.string.app_name)
-        MainTab.Earphones -> mainTitle.ifEmpty { stringResource(R.string.pod_info) }
-        MainTab.Settings -> stringResource(R.string.settings)
-    }
     val currentEarphonePref = earphonePrefs.firstOrNull {
         it.address.equals(connectedDeviceAddress, ignoreCase = true)
     }
@@ -210,82 +263,38 @@ internal fun MainTabsScaffold(
 
     LaunchedEffect(selectedTab) {
         val targetPage = selectedTab.ordinal
-        targetTabPage = targetPage
-        if (pagerState.currentPage != targetPage) {
-            pagerState.animateScrollToPage(targetPage)
+        if (mainPagerState.selectedPage != targetPage) {
+            mainPagerState.animateToPage(targetPage)
         }
     }
 
-    LaunchedEffect(pagerState, tabs, targetTabPage) {
-        snapshotFlow { pagerState.settledPage }
-            .distinctUntilChanged()
-            .collect { page ->
-                if (page == targetTabPage) {
-                    onTabSelected(tabs[page])
-                }
-            }
+    LaunchedEffect(pagerState.currentPage) {
+        mainPagerState.syncPage()
+    }
+
+    LaunchedEffect(mainPagerState.selectedPage, tabs) {
+        val page = mainPagerState.selectedPage
+        if (page in tabs.indices && selectedTab != tabs[page]) {
+            onTabSelected(tabs[page])
+        }
     }
 
     Scaffold(
-        topBar = {
-            if (!isLandscapeDetail) {
-                TopAppBar(
-                    title = title,
-                    largeTitle = title,
-                    scrollBehavior = topAppBarScrollBehavior,
-                    navigationIcon = {
-                        if (selectedTab == MainTab.Earphones && showEarphoneDetail) {
-                            IconButton(onClick = onBackToDevicePicker) {
-                                Icon(imageVector = MiuixIcons.Back, contentDescription = "Back")
-                            }
-                        }
-                    },
-                    actions = {
-                        if (selectedTab == MainTab.Earphones && showEarphoneDetail) {
-                            IconButton(onClick = { showMelodyImportDialog = true }) {
-                                Icon(
-                                    imageVector = MiuixIcons.Import,
-                                    contentDescription = stringResource(R.string.import_melody_images),
-                                )
-                            }
-                            IconButton(onClick = { showPodImageDialog = true }) {
-                                Icon(
-                                    imageVector = MiuixIcons.Edit,
-                                    modifier = Modifier.size(23.dp),
-                                    contentDescription = stringResource(R.string.custom_pod_images),
-                                )
-                            }
-                            IconButton(onClick = onOpenSystemHeadsetSettings) {
-                                Icon(
-                                    imageVector = MiuixIcons.Settings,
-                                    contentDescription = stringResource(R.string.click_action_system_settings),
-                                )
-                            }
-                        } else if (selectedTab == MainTab.Module) {
-                            IconButton(
-                                onClick = {
-                                    if (!restartingScopes) onShowRestartScopeDialog()
-                                }
-                            ) {
-                                Icon(imageVector = MiuixIcons.Refresh, contentDescription = "Restart scope")
-                            }
-                        }
-                    }
-                )
-            }
-        },
         bottomBar = {
             BottomNavigation(
                 tabs = tabs,
-                selectedTab = selectedTab,
+                selectedTab = tabs.getOrElse(mainPagerState.selectedPage) { selectedTab },
                 floating = floatingBottomBar,
                 blur = blurBottomBar,
                 backdrop = backdrop,
-                onTabClick = onTabSelected,
+                onTabClick = {
+                    mainPagerState.animateToPage(it.ordinal)
+                    onTabSelected(it)
+                },
             )
         }
     ) { padding ->
-        val contentPadding = if (overlayBottomBar) padding.withoutBottom() else padding
+        val contentPadding = if (overlayBottomBar) PaddingValues(0.dp) else PaddingValues(bottom = padding.calculateBottomPadding())
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -300,79 +309,164 @@ internal fun MainTabsScaffold(
                 key = { page -> tabs[page] },
             ) { page ->
                 when (tabs[page]) {
-                    MainTab.Module -> HomePage(
-                        modifier = Modifier
-                            .overScrollVertical()
-                            .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection),
-                        xposedService = xposedService,
-                        bluetoothServiceResponsive = bluetoothServiceResponsive,
-                        bluetoothEnabled = bluetoothEnabled,
-                        bondedDeviceCount = bondedDeviceCount,
-                        bottomContentPadding = pageBottomContentPadding,
-                    )
+                    MainTab.Module -> {
+                        val scrollBehavior = MiuixScrollBehavior(rememberTopAppBarState())
+                        Scaffold(
+                            topBar = {
+                                TopAppBar(
+                                    title = stringResource(R.string.app_name),
+                                    largeTitle = stringResource(R.string.app_name),
+                                    scrollBehavior = scrollBehavior,
+                                    actions = {
+                                        IconButton(
+                                            onClick = {
+                                                if (!restartingScopes) onShowRestartScopeDialog()
+                                            }
+                                        ) {
+                                            Icon(imageVector = MiuixIcons.Refresh, contentDescription = "Restart scope")
+                                        }
+                                    },
+                                )
+                            },
+                        ) { pagePadding ->
+                            HomePage(
+                                modifier = Modifier
+                                    .overScrollVertical()
+                                    .nestedScroll(scrollBehavior.nestedScrollConnection),
+                                xposedService = xposedService,
+                                bluetoothServiceResponsive = bluetoothServiceResponsive,
+                                bluetoothEnabled = bluetoothEnabled,
+                                bondedDeviceCount = bondedDeviceCount,
+                                contentPadding = pagePadding,
+                                bottomContentPadding = pageBottomContentPadding,
+                            )
+                        }
+                    }
 
-                    MainTab.Earphones -> EarphonesTabPage(
-                        showEarphoneDetail = showEarphoneDetail,
-                        displayTitle = displayTitle,
-                        displayBattery = displayBattery,
-                        displayWearStatus = displayWearStatus,
-                        displayAnc = displayAnc,
-                        onAncModeChange = onAncModeChange,
-                        displayTransparencyVocalEnhancement = displayTransparencyVocalEnhancement,
-                        onTransparencyVocalEnhancementChange = onTransparencyVocalEnhancementChange,
-                        displayGameMode = displayGameMode,
-                        onGameModeChange = onGameModeChange,
-                        spatialAudioMode = spatialAudioMode,
-                        onSpatialAudioModeChange = onSpatialAudioModeChange,
-                        displayDualDeviceConnection = displayDualDeviceConnection,
-                        onDualDeviceConnectionChange = onDualDeviceConnectionChange,
-                        spatialAudioSupported = spatialAudioSupported,
-                        spatialSoundSupported = spatialSoundSupported,
-                        adaptiveModeEnabled = adaptiveModeEnabled,
-                        boxImagePath = currentEarphonePref?.boxImagePath,
-                        connectedDeviceAddress = connectedDeviceAddress,
-                        connectingDeviceAddress = connectingDeviceAddress,
-                        showConnectErrorDialog = showConnectErrorDialog,
-                        pageBottomContentPadding = pageBottomContentPadding,
-                        nestedScrollConnection = topAppBarScrollBehavior.nestedScrollConnection,
-                        onDeviceSelected = onDeviceSelected,
-                        onConnectedDeviceClick = onConnectedDeviceClick,
-                        onDeviceDisconnect = onDeviceDisconnect,
-                        onDismissConnectError = onDismissConnectError,
-                    )
+                    MainTab.Earphones -> {
+                        val scrollBehavior = MiuixScrollBehavior(rememberTopAppBarState())
+                        Scaffold(
+                            topBar = {
+                                if (!isLandscapeDetail) {
+                                    TopAppBar(
+                                        title = mainTitle.ifEmpty { stringResource(R.string.pod_info) },
+                                        largeTitle = mainTitle.ifEmpty { stringResource(R.string.pod_info) },
+                                        scrollBehavior = scrollBehavior,
+                                        navigationIcon = {
+                                            if (showEarphoneDetail) {
+                                                IconButton(onClick = onBackToDevicePicker) {
+                                                    Icon(imageVector = MiuixIcons.Back, contentDescription = "Back")
+                                                }
+                                            }
+                                        },
+                                        actions = {
+                                            if (showEarphoneDetail) {
+                                                IconButton(onClick = { showMelodyImportDialog = true }) {
+                                                    Icon(
+                                                        imageVector = MiuixIcons.Import,
+                                                        contentDescription = stringResource(R.string.import_melody_images),
+                                                    )
+                                                }
+                                                IconButton(onClick = { showPodImageDialog = true }) {
+                                                    Icon(
+                                                        imageVector = MiuixIcons.Edit,
+                                                        modifier = Modifier.size(23.dp),
+                                                        contentDescription = stringResource(R.string.custom_pod_images),
+                                                    )
+                                                }
+                                                IconButton(onClick = onOpenSystemHeadsetSettings) {
+                                                    Icon(
+                                                        imageVector = MiuixIcons.Settings,
+                                                        contentDescription = stringResource(R.string.click_action_system_settings),
+                                                    )
+                                                }
+                                            }
+                                        },
+                                    )
+                                }
+                            },
+                        ) { pagePadding ->
+                            EarphonesTabPage(
+                                showEarphoneDetail = showEarphoneDetail,
+                                displayTitle = displayTitle,
+                                displayBattery = displayBattery,
+                                displayWearStatus = displayWearStatus,
+                                displayAnc = displayAnc,
+                                onAncModeChange = onAncModeChange,
+                                displayTransparencyVocalEnhancement = displayTransparencyVocalEnhancement,
+                                onTransparencyVocalEnhancementChange = onTransparencyVocalEnhancementChange,
+                                displayGameMode = displayGameMode,
+                                onGameModeChange = onGameModeChange,
+                                spatialAudioMode = spatialAudioMode,
+                                onSpatialAudioModeChange = onSpatialAudioModeChange,
+                                displayDualDeviceConnection = displayDualDeviceConnection,
+                                onDualDeviceConnectionChange = onDualDeviceConnectionChange,
+                                spatialAudioSupported = spatialAudioSupported,
+                                spatialSoundSupported = spatialSoundSupported,
+                                adaptiveModeEnabled = adaptiveModeEnabled,
+                                boxImagePath = currentEarphonePref?.boxImagePath,
+                                connectedDeviceAddress = connectedDeviceAddress,
+                                connectingDeviceAddress = connectingDeviceAddress,
+                                showConnectErrorDialog = showConnectErrorDialog,
+                                contentPadding = pagePadding,
+                                pageBottomContentPadding = pageBottomContentPadding,
+                                nestedScrollConnection = scrollBehavior.nestedScrollConnection,
+                                onDeviceSelected = onDeviceSelected,
+                                onConnectedDeviceClick = onConnectedDeviceClick,
+                                onDeviceDisconnect = onDeviceDisconnect,
+                                onDismissConnectError = onDismissConnectError,
+                            )
+                        }
+                    }
 
-                    MainTab.Settings -> SettingsPage(
-                        modifier = Modifier
-                            .overScrollVertical()
-                            .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection),
-                        contentPadding = PaddingValues(bottom = pageBottomContentPadding),
-                        desktopIconHidden = desktopIconHidden,
-                        onDesktopIconHiddenChange = onDesktopIconHiddenChange,
-                        logLevel = logLevel,
-                        onLogLevelChange = onLogLevelChange,
-                        islandMode = islandMode,
-                        onIslandModeChange = onIslandModeChange,
-                        islandShowTimings = islandShowTimings,
-                        onIslandShowTimingsChange = onIslandShowTimingsChange,
-                        appLanguage = appLanguage,
-                        onAppLanguageChange = onAppLanguageChange,
-                        autoGameMode = autoGameMode,
-                        onAutoGameModeChange = onAutoGameModeChange,
-                        gameModeImplementation = gameModeImplementation,
-                        onGameModeImplementationChange = onGameModeImplementationChange,
-                        notificationClickAction = notificationClickAction,
-                        onNotificationClickActionChange = onNotificationClickActionChange,
-                        moreClickAction = moreClickAction,
-                        onMoreClickActionChange = onMoreClickActionChange,
-                        adaptiveCapabilityOverride = adaptiveCapabilityOverride,
-                        spatialAudioCapabilityOverride = spatialAudioCapabilityOverride,
-                        spatialSoundSwitchCapabilityOverride = spatialSoundSwitchCapabilityOverride,
-                        onOpenDeviceCapabilities = onOpenDeviceCapabilities,
-                        fakeDeviceId = fakeDeviceId,
-                        onFakeDeviceIdChange = onFakeDeviceIdChange,
-                        onOpenTheme = onOpenTheme,
-                        onOpenAbout = onOpenAbout,
-                    )
+                    MainTab.Settings -> {
+                        val scrollBehavior = MiuixScrollBehavior(rememberTopAppBarState())
+                        Scaffold(
+                            topBar = {
+                                TopAppBar(
+                                    title = stringResource(R.string.settings),
+                                    largeTitle = stringResource(R.string.settings),
+                                    scrollBehavior = scrollBehavior,
+                                )
+                            },
+                        ) { pagePadding ->
+                            SettingsPage(
+                                modifier = Modifier
+                                    .overScrollVertical()
+                                    .nestedScroll(scrollBehavior.nestedScrollConnection),
+                                contentPadding = PaddingValues(
+                                    top = pagePadding.calculateTopPadding(),
+                                    bottom = pageBottomContentPadding,
+                                ),
+                                desktopIconHidden = desktopIconHidden,
+                                onDesktopIconHiddenChange = onDesktopIconHiddenChange,
+                                logLevel = logLevel,
+                                onLogLevelChange = onLogLevelChange,
+                                islandMode = islandMode,
+                                onIslandModeChange = onIslandModeChange,
+                                islandShowTimings = islandShowTimings,
+                                onIslandShowTimingsChange = onIslandShowTimingsChange,
+                                appLanguage = appLanguage,
+                                onAppLanguageChange = onAppLanguageChange,
+                                autoGameMode = autoGameMode,
+                                onAutoGameModeChange = onAutoGameModeChange,
+                                gameModeImplementation = gameModeImplementation,
+                                onGameModeImplementationChange = onGameModeImplementationChange,
+                                notificationClickAction = notificationClickAction,
+                                onNotificationClickActionChange = onNotificationClickActionChange,
+                                moreClickAction = moreClickAction,
+                                onMoreClickActionChange = onMoreClickActionChange,
+                                adaptiveCapabilityOverride = adaptiveCapabilityOverride,
+                                spatialAudioCapabilityOverride = spatialAudioCapabilityOverride,
+                                spatialSoundSwitchCapabilityOverride = spatialSoundSwitchCapabilityOverride,
+                                onOpenDeviceCapabilities = onOpenDeviceCapabilities,
+                                fakeDeviceId = fakeDeviceId,
+                                onFakeDeviceIdChange = onFakeDeviceIdChange,
+                                onOpenTheme = onOpenTheme,
+                                onOpenAbout = onOpenAbout,
+                            )
+                        }
+                    }
                 }
             }
 
@@ -480,6 +574,7 @@ private fun EarphonesTabPage(
     connectedDeviceAddress: String,
     connectingDeviceAddress: String?,
     showConnectErrorDialog: Boolean,
+    contentPadding: PaddingValues,
     pageBottomContentPadding: Dp,
     nestedScrollConnection: NestedScrollConnection,
     onDeviceSelected: (BluetoothDevice) -> Unit,
@@ -497,7 +592,7 @@ private fun EarphonesTabPage(
                 modifier = Modifier
                     .overScrollVertical()
                     .nestedScroll(nestedScrollConnection),
-                contentPadding = PaddingValues(0.dp),
+                contentPadding = contentPadding,
                 bottomContentPadding = pageBottomContentPadding,
                 podName = displayTitle.ifEmpty { stringResource(R.string.pod_info) },
                 batteryParams = displayBattery,
@@ -523,6 +618,7 @@ private fun EarphonesTabPage(
                 connectedDeviceAddress = connectedDeviceAddress,
                 connectingDeviceAddress = connectingDeviceAddress,
                 showConnectError = showConnectErrorDialog,
+                contentPadding = contentPadding,
                 bottomContentPadding = pageBottomContentPadding,
                 onDeviceSelected = onDeviceSelected,
                 onConnectedDeviceClick = onConnectedDeviceClick,
