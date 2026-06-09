@@ -65,6 +65,13 @@
     <string name="more">更多</string>
     <string name="done">完成</string>
     <string name="confirm">确认</string>
+    <string name="save">保存</string>
+    <string name="custom_pod_images">自定义图片</string>
+    <string name="custom_image_box">耳机盒图片</string>
+    <string name="custom_image_left">左耳图片</string>
+    <string name="custom_image_right">右耳图片</string>
+    <string name="custom_image_selected">已选择自定义图片</string>
+    <string name="custom_image_default">使用默认图片</string>
     <string name="theme_title">主题</string>
     <string name="theme_follow_system">跟随系统</string>
     <string name="theme_light">浅色</string>

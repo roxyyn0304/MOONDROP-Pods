@@ -379,7 +379,7 @@ object RfcommController {
                 putExtra("device_name", mDevice.name ?: cachedDeviceName)
             }
             if (shouldShowIsland(ConfigManager.ISLAND_SHOW_TIMING_CONNECTED)) {
-                MiuiStrongToastUtil.showPodsBatteryToastByMiuiBt(mContext!!, batteryParams)
+                MiuiStrongToastUtil.showPodsBatteryToastByMiuiBt(mContext!!, batteryParams, mDevice)
             }
             mShowedConnectedToast = true
         }

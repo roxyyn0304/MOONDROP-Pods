@@ -15,6 +15,7 @@ import android.graphics.drawable.Icon
 import android.os.Bundle
 import com.xzakota.hyper.notification.focus.FocusNotification
 import moe.chenxy.oppopods.utils.FocusIslandUtil
+import moe.chenxy.oppopods.utils.PodImageLoader
 import moe.chenxy.oppopods.utils.SystemApisUtils
 import moe.chenxy.oppopods.utils.SystemApisUtils.cancelAsUser
 import moe.chenxy.oppopods.utils.SystemApisUtils.notifyAsUser
@@ -102,9 +103,13 @@ object MiBluetoothToastHook : HookContext() {
                 val moduleContext = context.createPackageContext(
                     "moe.chenxy.oppopods", Context.CONTEXT_IGNORE_SECURITY
                 )
-                val headsetIcon = Icon.createWithBitmap(
-                    BitmapFactory.decodeResource(moduleContext.resources, R.drawable.img_box)
-                )
+                val headsetBitmap = PodImageLoader.loadBoxBitmap(context, prefs, address)
+                    ?: BitmapFactory.decodeResource(moduleContext.resources, R.drawable.img_box)
+                if (headsetBitmap == null) {
+                    Log.e("OppoPods", "createPodsNotification: headset bitmap null")
+                    return
+                }
+                val headsetIcon = Icon.createWithBitmap(headsetBitmap)
                 val pendingIntent = PendingIntent.getActivity(
                     context,
                     0,
@@ -247,7 +252,8 @@ object MiBluetoothToastHook : HookContext() {
                                 }
                                 val batteryParams = p1.getParcelableExtra("batteryParams", BatteryParams::class.java)!!
                                 // Use Focus Island (HyperOS 3+) for battery display
-                                FocusIslandUtil.showBatteryIsland(context, batteryParams)
+                                val address = p1.getStringExtra("address").orEmpty()
+                                FocusIslandUtil.showBatteryIsland(context, prefs, batteryParams, address)
                             } else if (p1?.action == "chen.action.oppopods.updatepodsnotification") {
                                 val batteryParams = p1.getParcelableExtra<BatteryParams>("batteryParams", BatteryParams::class.java)
                                 val device = p1.getParcelableExtra("device", BluetoothDevice::class.java)

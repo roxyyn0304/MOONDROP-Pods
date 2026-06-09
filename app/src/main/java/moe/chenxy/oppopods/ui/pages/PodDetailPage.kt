@@ -1,6 +1,7 @@
 package moe.chenxy.oppopods.ui.pages
 
 import android.content.res.Configuration
+import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -14,8 +15,11 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
@@ -56,7 +60,8 @@ fun PodDetailPage(
     onDualDeviceConnectionChange: (Boolean) -> Unit = {},
     spatialAudioSupported: Boolean = false,
     spatialSoundSupported: Boolean = false,
-    adaptiveModeEnabled: Boolean = true
+    adaptiveModeEnabled: Boolean = true,
+    boxImagePath: String? = null,
 ) {
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
@@ -75,7 +80,7 @@ fun PodDetailPage(
                 verticalArrangement = Arrangement.Center
             ) {
                 Image(
-                    painter = painterResource(R.drawable.img_box),
+                    painter = rememberPodImagePainter(boxImagePath),
                     contentDescription = "Earphones",
                     modifier = Modifier
                         .fillMaxWidth(0.82f)
@@ -128,7 +133,7 @@ fun PodDetailPage(
     ) {
         item {
             Image(
-                painter = painterResource(R.drawable.img_box),
+                painter = rememberPodImagePainter(boxImagePath),
                 contentDescription = "Earphones",
                 modifier = Modifier
                     .fillMaxWidth(0.7f)
@@ -157,6 +162,15 @@ fun PodDetailPage(
         )
     }
 }
+
+@Composable
+private fun rememberPodImagePainter(path: String?) = remember(path) {
+    path?.let {
+        runCatching { BitmapFactory.decodeFile(it) }
+            .getOrNull()
+            ?.let { bitmap -> BitmapPainter(bitmap.asImageBitmap()) }
+    }
+} ?: painterResource(R.drawable.img_box)
 
 private fun LazyListScope.podControlItems(
     batteryParams: BatteryParams,

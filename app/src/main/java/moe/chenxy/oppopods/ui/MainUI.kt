@@ -11,6 +11,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.SystemClock
 import android.util.Log
 import android.widget.Toast
@@ -43,6 +44,8 @@ import androidx.navigation3.ui.NavDisplay
 import moe.chenxy.oppopods.OppoPodsApp
 import moe.chenxy.oppopods.R
 import moe.chenxy.oppopods.config.ConfigManager
+import moe.chenxy.oppopods.config.PodImagePrefs
+import moe.chenxy.oppopods.config.PodImageResource
 import moe.chenxy.oppopods.pods.GameModeImplementation
 import moe.chenxy.oppopods.pods.NoiseControlMode
 import moe.chenxy.oppopods.pods.WearState
@@ -151,6 +154,7 @@ fun MainUI(
     val islandShowTimings = remember { mutableStateOf(appConfig.islandShowTimings) }
     val rfcommChannel = remember { mutableStateOf(appConfig.rfcommChannel) }
     val spatialAudioMode = remember { mutableStateOf(prefs.getInt("spatial_audio_mode", ConfigManager.SPATIAL_AUDIO_OFF)) }
+    val earphonePrefs = remember { mutableStateOf(PodImagePrefs.load(prefs)) }
     val adaptiveCapabilityOverride = remember { mutableStateOf(appConfig.adaptiveCapabilityOverride) }
     val spatialAudioCapabilityOverride = remember { mutableStateOf(appConfig.spatialAudioCapabilityOverride) }
     val spatialSoundSwitchCapabilityOverride = remember { mutableStateOf(appConfig.spatialSoundSwitchCapabilityOverride) }
@@ -265,6 +269,12 @@ fun MainUI(
                         connectedDeviceAddress = p1.getStringExtra("address") ?: connectedDeviceAddress
                         connectingDeviceAddress = null
                         mainTitle.value = deviceName ?: ""
+                        earphonePrefs.value = PodImagePrefs.upsertConnected(
+                            prefs = prefs,
+                            service = xposedService,
+                            address = connectedDeviceAddress,
+                            name = deviceName.orEmpty(),
+                        )
                         hookConnected.value = true
                         hookConnectionState = "connected"
                         if (shouldOpenEarphones) {
@@ -285,7 +295,10 @@ fun MainUI(
                             hookConnected.value = false
                         } else if (hookConnected.value) {
                             connectedDeviceAddress = p1.getStringExtra("address") ?: connectedDeviceAddress
-                            p1.getStringExtra("device_name")?.let { mainTitle.value = it }
+                            p1.getStringExtra("device_name")?.let {
+                                mainTitle.value = it
+                                earphonePrefs.value = PodImagePrefs.upsertConnected(prefs, xposedService, connectedDeviceAddress, it)
+                            }
                         }
                     }
 
@@ -524,6 +537,10 @@ fun MainUI(
         }
     }
 
+    fun savePodImages(address: String, name: String, images: Map<PodImageResource, Uri?>) {
+        earphonePrefs.value = PodImagePrefs.saveImages(context, prefs, xposedService, address, name, images)
+    }
+
     fun restartScopes(packages: List<String>) {
         if (packages.isEmpty() || restartingScopes) return
         restartingScopes = true
@@ -578,6 +595,7 @@ fun MainUI(
                 spatialAudioSupported = displayCapabilities.spatialAudioSupported,
                 spatialSoundSupported = displayCapabilities.spatialSoundSwitchSupported,
                 adaptiveModeEnabled = displayCapabilities.adaptiveSupported,
+                earphonePrefs = earphonePrefs.value,
                 connectedDeviceAddress = connectedDeviceAddress,
                 connectingDeviceAddress = connectingDeviceAddress,
                 showConnectErrorDialog = showConnectErrorDialog,
@@ -678,6 +696,7 @@ fun MainUI(
                 onRestartScopes = { restartScopes(it) },
                 onBackToDevicePicker = { backToDevicePicker() },
                 onOpenSystemHeadsetSettings = { openSystemHeadsetSettings() },
+                onSavePodImages = { address, name, images -> savePodImages(address, name, images) },
             )
         }
         entry<Screen.About> {

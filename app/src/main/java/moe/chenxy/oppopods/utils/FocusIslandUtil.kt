@@ -5,12 +5,11 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
-import android.graphics.BitmapFactory
+import android.content.SharedPreferences
 import android.graphics.drawable.Icon
 import android.os.Handler
 import android.os.Looper
 import com.xzakota.hyper.notification.focus.FocusNotification
-import moe.chenxy.oppopods.R
 import moe.chenxy.oppopods.hook.Log
 import moe.chenxy.oppopods.utils.miuiStrongToast.data.BatteryParams
 
@@ -20,11 +19,15 @@ object FocusIslandUtil {
     private const val CHANNEL_ID = "oppopods_focus_island"
     private const val CHANNEL_NAME = "OppoPods Battery"
     private const val NOTIFICATION_ID = 10086
-    private const val MODULE_PACKAGE = "moe.chenxy.oppopods"
     private const val ISLAND_TIMEOUT_SECONDS = 3
     private const val DISMISS_DELAY_MS = 4000L
 
-    fun showBatteryIsland(context: Context, batteryParams: BatteryParams): Boolean {
+    fun showBatteryIsland(
+        context: Context,
+        prefs: SharedPreferences,
+        batteryParams: BatteryParams,
+        address: String,
+    ): Boolean {
         try {
             val leftConnected = batteryParams.left?.isConnected == true
             val rightConnected = batteryParams.right?.isConnected == true
@@ -35,12 +38,8 @@ object FocusIslandUtil {
             val leftText = if (leftConnected) "${batteryParams.left!!.battery}" else "-"
             val rightText = if (rightConnected) "${batteryParams.right!!.battery}" else "-"
 
-            // 从模块 APK 加载耳机图片为 Bitmap，避免跨包资源引用问题
-            val moduleContext = context.createPackageContext(
-                MODULE_PACKAGE, Context.CONTEXT_IGNORE_SECURITY
-            )
-            val leftBitmap = BitmapFactory.decodeResource(moduleContext.resources, R.drawable.img_left)
-            val rightBitmap = BitmapFactory.decodeResource(moduleContext.resources, R.drawable.img_right)
+            val leftBitmap = PodImageLoader.loadIslandLeftBitmap(context, prefs, address)
+            val rightBitmap = PodImageLoader.loadIslandRightBitmap(context, prefs, address)
 
             if (leftBitmap == null || rightBitmap == null) {
                 Log.e(TAG, "Failed to decode earphone icon bitmaps")

@@ -64,6 +64,13 @@
     <string name="more">More</string>
     <string name="done">Done</string>
     <string name="confirm">Confirm</string>
+    <string name="save">Save</string>
+    <string name="custom_pod_images">Custom Images</string>
+    <string name="custom_image_box">Case image</string>
+    <string name="custom_image_left">Left earbud image</string>
+    <string name="custom_image_right">Right earbud image</string>
+    <string name="custom_image_selected">Custom image selected</string>
+    <string name="custom_image_default">Use default image</string>
     <string name="theme_title">Theme</string>
     <string name="theme_follow_system">Follow System</string>
     <string name="theme_light">Light</string>
