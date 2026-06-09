@@ -84,14 +84,44 @@ object PodImagePrefs {
         address: String,
         name: String,
         selectedImages: Map<PodImageResource, Uri?>,
+        clearedImages: Set<PodImageResource> = emptySet(),
     ): List<EarphonePref> {
         if (address.isBlank()) return load(prefs)
         val current = load(prefs)
         val existing = current.firstOrNull { it.address.equals(address, ignoreCase = true) }
         var updated = existing ?: EarphonePref(address = address, name = name)
+        clearedImages.forEach { resource ->
+            updated = updated.withImagePath(resource, null)
+        }
         selectedImages.forEach { (resource, uri) ->
             if (uri != null) {
                 updated = updated.withImagePath(resource, copyImage(context, address, resource, uri))
+            }
+        }
+        updated = updated.copy(
+            name = name.ifBlank { updated.name },
+            lastConnectedAt = System.currentTimeMillis(),
+        )
+        val normalized = listOf(updated) + current.filterNot { it.address.equals(address, ignoreCase = true) }
+        service?.getRemotePreferences(ConfigManager.PREFS_NAME)?.let { save(it, normalized) }
+        return save(prefs, normalized)
+    }
+
+    fun saveImageBytes(
+        context: Context,
+        prefs: SharedPreferences,
+        service: XposedService?,
+        address: String,
+        name: String,
+        images: Map<PodImageResource, ByteArray>,
+    ): List<EarphonePref> {
+        if (address.isBlank()) return load(prefs)
+        val current = load(prefs)
+        val existing = current.firstOrNull { it.address.equals(address, ignoreCase = true) }
+        var updated = existing ?: EarphonePref(address = address, name = name)
+        images.forEach { (resource, bytes) ->
+            if (bytes.isNotEmpty()) {
+                updated = updated.withImagePath(resource, copyImage(context, address, resource, bytes))
             }
         }
         updated = updated.copy(
@@ -126,7 +156,19 @@ object PodImagePrefs {
         return file.absolutePath
     }
 
-    private fun EarphonePref.withImagePath(resource: PodImageResource, path: String): EarphonePref = when (resource) {
+    private fun copyImage(
+        context: Context,
+        address: String,
+        resource: PodImageResource,
+        bytes: ByteArray,
+    ): String {
+        val dir = imageDir(context)
+        val file = File(dir, "${address.safeFileName()}_${resource.fileSuffix}.img")
+        file.writeBytes(bytes)
+        return file.absolutePath
+    }
+
+    private fun EarphonePref.withImagePath(resource: PodImageResource, path: String?): EarphonePref = when (resource) {
         PodImageResource.BOX -> copy(boxImagePath = path)
         PodImageResource.LEFT -> copy(leftImagePath = path)
         PodImageResource.RIGHT -> copy(rightImagePath = path)

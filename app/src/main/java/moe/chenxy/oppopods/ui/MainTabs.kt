@@ -18,9 +18,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -31,6 +34,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -53,7 +57,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import io.github.libxposed.service.XposedService
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import moe.chenxy.oppopods.R
 import moe.chenxy.oppopods.config.EarphonePref
 import moe.chenxy.oppopods.config.PodImageResource
@@ -67,12 +74,15 @@ import moe.chenxy.oppopods.ui.pages.DevicePickerPage
 import moe.chenxy.oppopods.ui.pages.HomePage
 import moe.chenxy.oppopods.ui.pages.PodDetailPage
 import moe.chenxy.oppopods.ui.pages.SettingsPage
+import moe.chenxy.oppopods.utils.MelodyImageCandidate
+import moe.chenxy.oppopods.utils.RootManager
 import moe.chenxy.oppopods.utils.miuiStrongToast.data.BatteryParams
 import top.yukonga.miuix.kmp.basic.FloatingNavigationBar
 import top.yukonga.miuix.kmp.basic.FloatingNavigationBarItem
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.NavigationBar
 import top.yukonga.miuix.kmp.basic.NavigationBarItem
@@ -86,7 +96,9 @@ import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.textureBlur
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
+import top.yukonga.miuix.kmp.icon.extended.Close
 import top.yukonga.miuix.kmp.icon.extended.Edit
+import top.yukonga.miuix.kmp.icon.extended.Import
 import top.yukonga.miuix.kmp.icon.extended.Refresh
 import top.yukonga.miuix.kmp.icon.extended.Settings
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
@@ -175,7 +187,8 @@ internal fun MainTabsScaffold(
     onRestartScopes: (List<String>) -> Unit,
     onBackToDevicePicker: () -> Unit,
     onOpenSystemHeadsetSettings: () -> Unit,
-    onSavePodImages: (String, String, Map<PodImageResource, Uri?>) -> Unit,
+    onSavePodImages: (String, String, Map<PodImageResource, Uri?>, Set<PodImageResource>) -> Unit,
+    onSavePodImageBytes: (String, String, Map<PodImageResource, ByteArray>) -> Unit,
 ) {
     val topAppBarScrollBehavior = MiuixScrollBehavior(rememberTopAppBarState())
     val pagerState = rememberPagerState(
@@ -195,6 +208,7 @@ internal fun MainTabsScaffold(
         it.address.equals(connectedDeviceAddress, ignoreCase = true)
     }
     var showPodImageDialog by remember { mutableStateOf(false) }
+    var showMelodyImportDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(selectedTab) {
         val targetPage = selectedTab.ordinal
@@ -230,6 +244,12 @@ internal fun MainTabsScaffold(
                     },
                     actions = {
                         if (selectedTab == MainTab.Earphones && showEarphoneDetail) {
+                            IconButton(onClick = { showMelodyImportDialog = true }) {
+                                Icon(
+                                    imageVector = MiuixIcons.Import,
+                                    contentDescription = stringResource(R.string.import_melody_images),
+                                )
+                            }
                             IconButton(onClick = { showPodImageDialog = true }) {
                                 Icon(
                                     imageVector = MiuixIcons.Edit,
@@ -372,6 +392,18 @@ internal fun MainTabsScaffold(
                 IconButton(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
+                        .padding(top = 8.dp, end = 104.dp)
+                        .zIndex(1f),
+                    onClick = { showMelodyImportDialog = true },
+                ) {
+                    Icon(
+                        imageVector = MiuixIcons.Import,
+                        contentDescription = stringResource(R.string.import_melody_images),
+                    )
+                }
+                IconButton(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
                         .padding(top = 8.dp, end = 56.dp)
                         .zIndex(1f),
                     onClick = { showPodImageDialog = true },
@@ -409,9 +441,20 @@ internal fun MainTabsScaffold(
             currentAddress = connectedDeviceAddress,
             currentName = displayTitle,
             onDismissRequest = { showPodImageDialog = false },
-            onSave = { address, name, images ->
-                onSavePodImages(address, name, images)
+            onSave = { address, name, images, clearedImages ->
+                onSavePodImages(address, name, images, clearedImages)
                 showPodImageDialog = false
+            },
+        )
+
+        MelodyImageImportDialog(
+            show = showMelodyImportDialog,
+            currentAddress = connectedDeviceAddress,
+            currentName = displayTitle,
+            onDismissRequest = { showMelodyImportDialog = false },
+            onImport = { address, name, images ->
+                onSavePodImageBytes(address, name, images)
+                showMelodyImportDialog = false
             },
         )
     }
@@ -498,20 +541,178 @@ private fun EarphonesTabPage(
 }
 
 @Composable
+private fun MelodyImageImportDialog(
+    show: Boolean,
+    currentAddress: String,
+    currentName: String,
+    onDismissRequest: () -> Unit,
+    onImport: (String, String, Map<PodImageResource, ByteArray>) -> Unit,
+) {
+    var candidates by remember(show) { mutableStateOf<List<MelodyImageCandidate>>(emptyList()) }
+    var selectedCandidate by remember(show) { mutableStateOf<MelodyImageCandidate?>(null) }
+    var loading by remember(show) { mutableStateOf(false) }
+    var importing by remember(show) { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(show) {
+        if (!show) return@LaunchedEffect
+        loading = true
+        candidates = withContext(Dispatchers.IO) { RootManager.scanMelodyImageCandidates() }
+        selectedCandidate = candidates.firstOrNull()
+        loading = false
+    }
+
+    OverlayDialog(
+        title = stringResource(R.string.import_melody_images),
+        summary = stringResource(R.string.import_melody_images_summary),
+        show = show,
+        onDismissRequest = onDismissRequest,
+    ) {
+        Text(
+            text = stringResource(R.string.import_melody_images_hint),
+            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+            style = MiuixTheme.textStyles.body2,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+        )
+        if (loading) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                InfiniteProgressIndicator()
+            }
+        } else if (candidates.isEmpty()) {
+            Text(
+                text = stringResource(R.string.import_melody_images_empty),
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                style = MiuixTheme.textStyles.body2,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+            )
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 320.dp)
+                    .padding(bottom = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                items(candidates, key = { it.imageDir }) { candidate ->
+                    MelodyImageCandidateRow(
+                        candidate = candidate,
+                        selected = candidate.imageDir == selectedCandidate?.imageDir,
+                        onClick = { selectedCandidate = candidate },
+                    )
+                }
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            TextButton(
+                text = stringResource(R.string.cancel),
+                onClick = onDismissRequest,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(Modifier.width(4.dp))
+            TextButton(
+                text = stringResource(R.string.import_melody_images_action),
+                onClick = {
+                    val candidate = selectedCandidate ?: return@TextButton
+                    if (importing) return@TextButton
+                    importing = true
+                    scope.launch {
+                        val images: Map<PodImageResource, ByteArray> = withContext(Dispatchers.IO) {
+                            val paths: Map<PodImageResource, String> = mapOf(
+                                PodImageResource.BOX to candidate.boxPath,
+                                PodImageResource.LEFT to candidate.rightPath,
+                                PodImageResource.RIGHT to candidate.leftPath,
+                            )
+                            paths.mapNotNull { (resource, path) ->
+                                RootManager.readMelodyImage(path)?.takeIf { it.isNotEmpty() }?.let { bytes ->
+                                    resource to bytes
+                                }
+                            }.toMap()
+                        }
+                        importing = false
+                        if (images.size == PodImageResource.entries.size) {
+                            onImport(currentAddress, currentName, images)
+                        }
+                    }
+                },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.textButtonColorsPrimary(),
+            )
+        }
+    }
+}
+
+@Composable
+private fun MelodyImageCandidateRow(
+    candidate: MelodyImageCandidate,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val previewPainter = remember(candidate.imageDir) {
+        BitmapFactory.decodeByteArray(candidate.boxBytes, 0, candidate.boxBytes.size)
+    }?.let { bitmap -> BitmapPainter(bitmap.asImageBitmap()) }
+        ?: painterResource(R.drawable.img_box)
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (selected) MiuixTheme.colorScheme.primary.copy(alpha = 0.12f) else Color.Transparent)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Image(
+            painter = previewPainter,
+            contentDescription = candidate.label,
+            modifier = Modifier
+                .size(48.dp)
+                .clip(RoundedCornerShape(10.dp)),
+            contentScale = ContentScale.Fit,
+        )
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = candidate.label,
+                color = MiuixTheme.colorScheme.onSurface,
+                style = MiuixTheme.textStyles.headline1,
+            )
+            Text(
+                text = candidate.imageDir,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                style = MiuixTheme.textStyles.body2,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
+    }
+}
+
+@Composable
 private fun PodImageConfigDialog(
     show: Boolean,
     earphones: List<EarphonePref>,
     currentAddress: String,
     currentName: String,
     onDismissRequest: () -> Unit,
-    onSave: (String, String, Map<PodImageResource, Uri?>) -> Unit,
+    onSave: (String, String, Map<PodImageResource, Uri?>, Set<PodImageResource>) -> Unit,
 ) {
     val target = earphones.firstOrNull { it.address.equals(currentAddress, ignoreCase = true) }
         ?: EarphonePref(address = currentAddress, name = currentName)
     var selectedResource by remember(show) { mutableStateOf(PodImageResource.BOX) }
     var selectedImages by remember(show, target.address) { mutableStateOf<Map<PodImageResource, Uri?>>(emptyMap()) }
+    var clearedImages by remember(show, target.address) { mutableStateOf<Set<PodImageResource>>(emptySet()) }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri != null) selectedImages = selectedImages + (selectedResource to uri)
+        if (uri != null) {
+            selectedImages = selectedImages + (selectedResource to uri)
+            clearedImages = clearedImages - selectedResource
+        }
     }
 
     OverlayDialog(
@@ -528,16 +729,21 @@ private fun PodImageConfigDialog(
                 PodImageResourceRow(
                     resource = resource,
                     selectedUri = selectedImages[resource],
-                    savedPath = target.imagePath(resource),
+                    savedPath = target.imagePath(resource).takeUnless { resource in clearedImages },
                     title = stringResource(resource.titleRes()),
-                    summary = if (selectedImages[resource] != null || target.imagePath(resource) != null) {
+                    summary = if (resource !in clearedImages && (selectedImages[resource] != null || target.imagePath(resource) != null)) {
                         stringResource(R.string.custom_image_selected)
                     } else {
                         stringResource(R.string.custom_image_default)
                     },
+                    clearable = resource !in clearedImages && (selectedImages[resource] != null || target.imagePath(resource) != null),
                     onClick = {
                         selectedResource = resource
                         launcher.launch("image/*")
+                    },
+                    onClear = {
+                        selectedImages = selectedImages - resource
+                        clearedImages = clearedImages + resource
                     },
                 )
             }
@@ -554,7 +760,7 @@ private fun PodImageConfigDialog(
             Spacer(Modifier.width(4.dp))
             TextButton(
                 text = stringResource(R.string.save),
-                onClick = { onSave(target.address, target.name, selectedImages) },
+                onClick = { onSave(target.address, target.name, selectedImages, clearedImages) },
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.textButtonColorsPrimary(),
             )
@@ -569,7 +775,9 @@ private fun PodImageResourceRow(
     savedPath: String?,
     title: String,
     summary: String,
+    clearable: Boolean,
     onClick: () -> Unit,
+    onClear: () -> Unit,
 ) {
     val previewPainter = rememberPodImagePreviewPainter(resource, selectedUri, savedPath)
 
@@ -602,6 +810,20 @@ private fun PodImageResourceRow(
                 style = MiuixTheme.textStyles.body2,
                 modifier = Modifier.padding(top = 2.dp),
             )
+        }
+        if (clearable) {
+            Spacer(Modifier.width(12.dp))
+            IconButton(
+                modifier = Modifier.size(32.dp),
+                onClick = onClear,
+            ) {
+                Icon(
+                    modifier = Modifier.size(18.dp),
+                    imageVector = MiuixIcons.Close,
+                    contentDescription = stringResource(R.string.custom_image_restore_default),
+                    tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                )
+            }
         }
     }
 }

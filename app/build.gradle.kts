@@ -22,8 +22,8 @@ android {
         applicationId = "moe.chenxy.oppopods"
         minSdk = 35
         targetSdk = 36
-        versionCode = 11
-        versionName = "2.0.3"
+        versionCode = 12
+        versionName = "2.0.4"
         buildConfigField("long", "BUILD_TIMESTAMP", System.currentTimeMillis().toString())
     }
 

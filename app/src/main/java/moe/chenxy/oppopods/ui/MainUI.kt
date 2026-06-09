@@ -537,8 +537,17 @@ fun MainUI(
         }
     }
 
-    fun savePodImages(address: String, name: String, images: Map<PodImageResource, Uri?>) {
-        earphonePrefs.value = PodImagePrefs.saveImages(context, prefs, xposedService, address, name, images)
+    fun savePodImages(
+        address: String,
+        name: String,
+        images: Map<PodImageResource, Uri?>,
+        clearedImages: Set<PodImageResource>,
+    ) {
+        earphonePrefs.value = PodImagePrefs.saveImages(context, prefs, xposedService, address, name, images, clearedImages)
+    }
+
+    fun savePodImageBytes(address: String, name: String, images: Map<PodImageResource, ByteArray>) {
+        earphonePrefs.value = PodImagePrefs.saveImageBytes(context, prefs, xposedService, address, name, images)
     }
 
     fun restartScopes(packages: List<String>) {
@@ -696,7 +705,10 @@ fun MainUI(
                 onRestartScopes = { restartScopes(it) },
                 onBackToDevicePicker = { backToDevicePicker() },
                 onOpenSystemHeadsetSettings = { openSystemHeadsetSettings() },
-                onSavePodImages = { address, name, images -> savePodImages(address, name, images) },
+                onSavePodImages = { address, name, images, clearedImages ->
+                    savePodImages(address, name, images, clearedImages)
+                },
+                onSavePodImageBytes = { address, name, images -> savePodImageBytes(address, name, images) },
             )
         }
         entry<Screen.About> {

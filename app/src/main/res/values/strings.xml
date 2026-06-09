@@ -71,6 +71,12 @@
     <string name="custom_image_right">Right earbud image</string>
     <string name="custom_image_selected">Custom image selected</string>
     <string name="custom_image_default">Use default image</string>
+    <string name="custom_image_restore_default">Restore default image</string>
+    <string name="import_melody_images">Import Images</string>
+    <string name="import_melody_images_summary">Import model images from HeyTap Headset</string>
+    <string name="import_melody_images_hint">Please connect the earphones once in HeyTap Headset first.</string>
+    <string name="import_melody_images_empty">No HeyTap Headset model images found.</string>
+    <string name="import_melody_images_action">Import All</string>
     <string name="theme_title">Theme</string>
     <string name="theme_follow_system">Follow System</string>
     <string name="theme_light">Light</string>

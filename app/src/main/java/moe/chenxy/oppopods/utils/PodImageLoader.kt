@@ -61,7 +61,7 @@ object PodImageLoader {
     fun loadBoxBitmap(context: Context, prefs: SharedPreferences, address: String): Bitmap? {
         return loadBitmap(context, prefs, address, PodImageResource.BOX, R.drawable.img_box)
     }
-    
+
 
     fun loadIslandLeftBitmap(context: Context, prefs: SharedPreferences, address: String): Bitmap? {
         return loadBitmapWithCustomFallback(

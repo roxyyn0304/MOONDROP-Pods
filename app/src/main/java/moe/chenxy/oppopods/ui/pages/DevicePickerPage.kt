@@ -367,7 +367,6 @@ private fun DeviceRow(
                         modifier = Modifier.size(18.dp),
                         imageVector = MiuixIcons.Close,
                         contentDescription = null,
-                        tint = Color(0xFFFF5A52),
                     )
                 }
             }
