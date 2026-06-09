@@ -250,8 +250,9 @@ object RfcommController {
     }
 
     private fun currentConnectionState(): String = when {
-        isConnected && socket != null -> "connected"
+        isConnected && socket != null && ::currentBatteryParams.isInitialized -> "connected"
         connectionJob?.isActive == true || reconnectPending -> "connecting"
+        isConnected && socket != null -> "connecting"
         else -> "disconnected"
     }
 
@@ -369,6 +370,14 @@ object RfcommController {
         currentBatteryParams = batteryParams
 
         if (shouldShowToast) {
+            changeUIConnectionState("connected")
+            sendAppStatusBroadcast(OppoPodsAction.ACTION_PODS_CONNECTED) {
+                this.putExtra("address", mDevice.address)
+                this.putExtra("device_name", mDevice.name ?: cachedDeviceName)
+            }
+            sendExternalPodsStatusBroadcast(OppoPodsAction.ACTION_PODS_CONNECTED) {
+                putExtra("device_name", mDevice.name ?: cachedDeviceName)
+            }
             if (shouldShowIsland(ConfigManager.ISLAND_SHOW_TIMING_CONNECTED)) {
                 MiuiStrongToastUtil.showPodsBatteryToastByMiuiBt(mContext!!, batteryParams)
             }
@@ -464,14 +473,6 @@ object RfcommController {
             receiverRegistered = true
         }
 
-        sendAppStatusBroadcast(OppoPodsAction.ACTION_PODS_CONNECTED) {
-            this.putExtra("address", mDevice.address)
-            this.putExtra("device_name", cachedDeviceName)
-        }
-        sendExternalPodsStatusBroadcast(OppoPodsAction.ACTION_PODS_CONNECTED) {
-            putExtra("device_name", cachedDeviceName)
-        }
-
         MediaControl.mContext = mContext
         mediaRouter = MediaRouter2.getInstance(mContext!!)
         startRoutesScan()
@@ -565,7 +566,7 @@ object RfcommController {
                 reconnectAttempts.set(0)
                 reconnectPending = false
                 Log.d(TAG, "RFCOMM connected! channel=$rfcommChannel")
-                changeUIConnectionState("connected")
+                changeUIConnectionState("connecting")
 
                 startPacketReader(newSocket.inputStream)
                 startBatteryPolling()

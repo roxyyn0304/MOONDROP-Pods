@@ -14,6 +14,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -147,6 +151,7 @@ internal fun MainTabsScaffold(
         initialPage = selectedTab.ordinal,
         pageCount = { tabs.size },
     )
+    var targetTabPage by remember { mutableIntStateOf(selectedTab.ordinal) }
     val isLandscapeDetail = selectedTab == MainTab.Earphones &&
             showEarphoneDetail &&
             LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -158,15 +163,20 @@ internal fun MainTabsScaffold(
 
     LaunchedEffect(selectedTab) {
         val targetPage = selectedTab.ordinal
+        targetTabPage = targetPage
         if (pagerState.currentPage != targetPage) {
             pagerState.animateScrollToPage(targetPage)
         }
     }
 
-    LaunchedEffect(pagerState, tabs) {
+    LaunchedEffect(pagerState, tabs, targetTabPage) {
         snapshotFlow { pagerState.settledPage }
             .distinctUntilChanged()
-            .collect { page -> onTabSelected(tabs[page]) }
+            .collect { page ->
+                if (page == targetTabPage) {
+                    onTabSelected(tabs[page])
+                }
+            }
     }
 
     Scaffold(

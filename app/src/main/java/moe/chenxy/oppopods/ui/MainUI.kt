@@ -157,7 +157,6 @@ fun MainUI(
 
     val canShowDetailPage = hookConnected.value
     val showEarphoneDetail = canShowDetailPage && !showDevicePicker
-
     val displayBattery = batteryParams.value
     val displayWearStatus = wearStatus.value
     val displayAnc = ancMode.value
@@ -193,16 +192,7 @@ fun MainUI(
     }
 
     LaunchedEffect(hookConnectionState) {
-        if (hookConnectionState == "connected") {
-            val shouldOpenEarphones = connectingDeviceAddress != null
-            connectingDeviceAddress = null
-            showConnectErrorDialog = false
-            if (shouldOpenEarphones) {
-                selectedTab = MainTab.Earphones
-                hasAppliedDefaultTab = true
-                pendingOpenEarphonesAfterPickerLoaded = true
-            }
-        } else if (hookConnectionState == "error") {
+        if (hookConnectionState == "error") {
             connectingDeviceAddress = null
             pendingOpenEarphonesAfterPickerLoaded = false
             showConnectErrorDialog = true
@@ -273,11 +263,14 @@ fun MainUI(
                         val deviceName = p1.getStringExtra("device_name")
                         val shouldOpenEarphones = connectingDeviceAddress != null || !hasAppliedDefaultTab
                         connectedDeviceAddress = p1.getStringExtra("address") ?: connectedDeviceAddress
+                        connectingDeviceAddress = null
                         mainTitle.value = deviceName ?: ""
                         hookConnected.value = true
                         hookConnectionState = "connected"
                         if (shouldOpenEarphones) {
-                            selectedTab = MainTab.Earphones
+                            if (!hasAppliedDefaultTab) {
+                                selectedTab = MainTab.Earphones
+                            }
                             hasAppliedDefaultTab = true
                             pendingOpenEarphonesAfterPickerLoaded = true
                         }
@@ -289,11 +282,11 @@ fun MainUI(
                         if (hookConnectionState == "disconnected") {
                             connectedDeviceAddress = ""
                             mainTitle.value = ""
-                        } else {
+                            hookConnected.value = false
+                        } else if (hookConnected.value) {
                             connectedDeviceAddress = p1.getStringExtra("address") ?: connectedDeviceAddress
                             p1.getStringExtra("device_name")?.let { mainTitle.value = it }
                         }
-                        hookConnected.value = hookConnectionState == "connected"
                     }
 
                     OppoPodsAction.ACTION_PODS_DISCONNECTED -> {
@@ -425,14 +418,15 @@ fun MainUI(
         hookConnectionState = "disconnected"
         showConnectErrorDialog = false
         showDevicePicker = true
+        selectedTab = MainTab.Earphones
     }
 
     fun onDeviceSelected(device: BluetoothDevice) {
         connectingDeviceAddress = device.address
         pendingOpenEarphonesAfterPickerLoaded = false
-        connectedDeviceAddress = device.address
         showConnectErrorDialog = false
         showDevicePicker = true
+        selectedTab = MainTab.Earphones
         hookConnectionState = "connecting"
         Intent(OppoPodsAction.ACTION_CONNECT_POD_REQUEST).apply {
             putExtra("device", device)
