@@ -27,14 +27,6 @@ object HeadsetStateDispatcher : HookContext() {
             Log.w("OppoPods", "AdapterService.onCreate hook skipped", it)
         }
 
-        runCatching {
-            hookAfter(findMethod("com.android.bluetooth.a2dp.A2dpService", "onCreate")) {
-                registerAppRequestReceiver(instance as? Context)
-            }
-        }.onFailure {
-            Log.w("OppoPods", "A2dpService.onCreate hook skipped", it)
-        }
-
         hookAfter(findMethodByParamCount("com.android.bluetooth.a2dp.A2dpService", "handleConnectionStateChanged", 3)) {
             val currState = args[2] as Int
             val fromState = args[1] as Int
