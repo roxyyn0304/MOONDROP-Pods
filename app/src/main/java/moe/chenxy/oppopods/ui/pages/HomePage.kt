@@ -52,6 +52,12 @@ fun HomePage(
 ) {
     val context = LocalContext.current
     val systemInfo = remember { homeSystemInfo(context) }
+    val active = remember(xposedService) { hasRequiredBluetoothScopes(xposedService) }
+    val inactiveSummary = if (xposedService == null) {
+        "等待 LSPosed 服务连接"
+    } else {
+        "请在LSPosed中激活作用域"
+    }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -65,7 +71,8 @@ fun HomePage(
     ) {
         item {
             StatusGrid(
-                active = xposedService != null,
+                active = active,
+                inactiveSummary = inactiveSummary,
                 bluetoothServiceResponsive = bluetoothServiceResponsive,
                 bluetoothEnabled = bluetoothEnabled,
                 bondedDeviceCount = bondedDeviceCount,
@@ -78,7 +85,7 @@ fun HomePage(
 }
 
 @Composable
-private fun StatusGrid(active: Boolean, bluetoothServiceResponsive: Boolean, bluetoothEnabled: Boolean, bondedDeviceCount: Int) {
+private fun StatusGrid(active: Boolean, inactiveSummary: String, bluetoothServiceResponsive: Boolean, bluetoothEnabled: Boolean, bondedDeviceCount: Int) {
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
         if (maxWidth >= 600.dp) {
             Row(
@@ -86,7 +93,7 @@ private fun StatusGrid(active: Boolean, bluetoothServiceResponsive: Boolean, blu
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                StatusCard(active = active, bluetoothServiceResponsive = bluetoothServiceResponsive, modifier = Modifier.weight(1f).height(112.dp))
+                StatusCard(active = active, inactiveSummary = inactiveSummary, bluetoothServiceResponsive = bluetoothServiceResponsive, modifier = Modifier.weight(1f).height(112.dp))
                 StatCard(title = "蓝牙状态", value = if (bluetoothEnabled) "已开启" else "未开启", modifier = Modifier.weight(1f).height(112.dp))
                 StatCard(title = "配对蓝牙", value = bondedDeviceCount.toString(), modifier = Modifier.weight(1f).height(112.dp))
             }
@@ -96,7 +103,7 @@ private fun StatusGrid(active: Boolean, bluetoothServiceResponsive: Boolean, blu
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                StatusCard(active = active, bluetoothServiceResponsive = bluetoothServiceResponsive, modifier = Modifier.weight(1f).aspectRatio(1f))
+                StatusCard(active = active, inactiveSummary = inactiveSummary, bluetoothServiceResponsive = bluetoothServiceResponsive, modifier = Modifier.weight(1f).aspectRatio(1f))
                 Column(
                     modifier = Modifier.weight(1f).aspectRatio(1f),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -110,7 +117,7 @@ private fun StatusGrid(active: Boolean, bluetoothServiceResponsive: Boolean, blu
 }
 
 @Composable
-private fun StatusCard(active: Boolean, bluetoothServiceResponsive: Boolean, modifier: Modifier = Modifier) {
+private fun StatusCard(active: Boolean, inactiveSummary: String, bluetoothServiceResponsive: Boolean, modifier: Modifier = Modifier) {
     val serviceTimeout = active && !bluetoothServiceResponsive
     val statusColor = when {
         !active -> Color(0xFFFF5A52)
@@ -151,7 +158,7 @@ private fun StatusCard(active: Boolean, bluetoothServiceResponsive: Boolean, mod
                 )
                 Text(
                     text = when {
-                        !active -> "等待 LSPosed 服务连接"
+                        !active -> inactiveSummary
                         serviceTimeout -> "模块服务未响应"
                         else -> "模块服务已连接"
                     },
@@ -167,6 +174,18 @@ private fun StatusCard(active: Boolean, bluetoothServiceResponsive: Boolean, mod
             }
         }
     }
+}
+
+private val requiredBluetoothScopes = setOf(
+    "com.android.bluetooth",
+    "com.xiaomi.bluetooth",
+)
+
+private fun hasRequiredBluetoothScopes(service: XposedService?): Boolean {
+    if (service == null) return false
+    return runCatching {
+        service.scope.containsAll(requiredBluetoothScopes)
+    }.getOrDefault(false)
 }
 
 @Composable
