@@ -108,6 +108,8 @@ fun MainUI(
     val batteryParams = remember { mutableStateOf(BatteryParams()) }
     val wearStatus = remember { mutableStateOf(WearStatus()) }
     val ancMode = remember { mutableStateOf(NoiseControlMode.OFF) }
+    /** Smart-mode current auto-applied NC level (LIGHT/MEDIUM/DEEP), or null. */
+    val smartAncLevel = remember { mutableStateOf<NoiseControlMode?>(null) }
     val hookConnected = remember { mutableStateOf(false) }
     val gameMode = remember { mutableStateOf(false) }
     val transparencyVocalEnhancement = remember { mutableStateOf(false) }
@@ -237,6 +239,11 @@ fun MainUI(
                         }
                     }
 
+                    OppoPodsAction.ACTION_PODS_SMART_ANC_LEVEL_CHANGED -> {
+                        val ord = p1.getIntExtra("ordinal", -1)
+                        smartAncLevel.value = NoiseControlMode.entries.getOrNull(ord)
+                    }
+
                     OppoPodsAction.ACTION_PODS_BATTERY_CHANGED -> {
                         connectedDeviceAddress = p1.getStringExtra("address") ?: connectedDeviceAddress
                         batteryParams.value =
@@ -340,6 +347,7 @@ fun MainUI(
 
         context.registerReceiver(broadcastReceiver, IntentFilter().apply {
             addAction(OppoPodsAction.ACTION_PODS_ANC_CHANGED)
+            addAction(OppoPodsAction.ACTION_PODS_SMART_ANC_LEVEL_CHANGED)
             addAction(OppoPodsAction.ACTION_PODS_BATTERY_CHANGED)
             addAction(OppoPodsAction.ACTION_PODS_WEAR_STATUS_CHANGED)
             addAction(OppoPodsAction.ACTION_PODS_GAME_MODE_CHANGED)
@@ -629,6 +637,7 @@ fun MainUI(
                 displayWearStatus = displayWearStatus,
                 displayAnc = displayAnc,
                 onAncModeChange = { setAncMode(it) },
+                smartAncLevel = smartAncLevel.value,
                 displayTransparencyVocalEnhancement = displayTransparencyVocalEnhancement,
                 onTransparencyVocalEnhancementChange = { setTransparencyVocalEnhancement(it) },
                 displayGameMode = displayGameMode,

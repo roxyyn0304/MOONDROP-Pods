@@ -232,9 +232,14 @@ object Enums {
         0xAA.toByte(), 0x07, 0x00, 0x00, 0x06, 0x01, 0xF0.toByte(), 0x00, 0x00
     )
 
-    /** Enable active earphone status reports: AA 09 00 00 05 02 3A 02 00 01 02 */
+    /**
+     * Subscribe to status (0x02) + ANC/noise-mode (0x03) notifications:
+     * AA 0A 00 00 05 02 3A 03 00 02 02 03 — payload `[count=2, id 02, id 03]`.
+     * id 0x03 is the ANC/noise-mode channel that carries the smart-mode
+     * current-strength notify (0x0204 type 03 key 04) read by [SmartAncLevelParser].
+     */
     val ENABLE_STATUS_REPORT: ByteArray = byteArrayOf(
-        0xAA.toByte(), 0x09, 0x00, 0x00, 0x05, 0x02, 0x3A, 0x02, 0x00, 0x01, 0x02
+        0xAA.toByte(), 0x0A, 0x00, 0x00, 0x05, 0x02, 0x3A, 0x03, 0x00, 0x02, 0x02, 0x03
     )
 
     /** Query ANC mode: AA 09 00 00 0C 01 00 02 00 01 01 */
@@ -760,6 +765,51 @@ object SwitchFeatureSetParser {
             val value = data[i + 1].toInt() and 0xFF
             if (featureId == GameModeFeature.DUAL_DEVICE_CONNECTION && (value == 0x00 || value == 0x01)) {
                 return FeatureValue(featureId, value)
+            }
+        }
+        return null
+    }
+}
+
+/**
+ * Parser for the noise-mode notification (cmd 0x0204 type 0x03) the bud pushes
+ * once subscribed. We only care about **key 0x04** = the noise-reduction level
+ * that smart mode (智能切换) is currently auto-applying, so the UI can show it
+ * while the user is on the Smart sub-mode (e.g. "当前: 中度降噪").
+ *
+ * Payload shape: `03 <key> 01 <bitmap bytes>`. The bitmap uses the same bit
+ * positions as the SET command: bit 4 = 深度, 5 = 中度, 6 = 轻度. Key 0x01
+ * (the user-selected mode) is ignored here — that already flows through
+ * [AncModeParser].
+ */
+object SmartAncLevelParser {
+    /** Returns the current smart-applied NC level, or null if not a key-0x04 notify. */
+    fun parse(data: ByteArray): NoiseControlMode? {
+        if (data.size < 9) return null
+        if (data[0] != 0xAA.toByte()) return null
+        val cmd = (data[4].toInt() and 0xFF) or ((data[5].toInt() and 0xFF) shl 8)
+        if (cmd != Cmd.ANC_MODE_NOTIFY) return null
+        val payLen = (data[7].toInt() and 0xFF) or ((data[8].toInt() and 0xFF) shl 8)
+        val payloadStart = 9
+        if (data.size < payloadStart + payLen || payLen < 4) return null
+        if ((data[payloadStart].toInt() and 0xFF) != 0x03) return null       // report type 03
+        if ((data[payloadStart + 1].toInt() and 0xFF) != 0x04) return null   // key 04 = smart-applied
+        if ((data[payloadStart + 2].toInt() and 0xFF) != 0x01) return null   // bitmap encoding
+
+        val bitmapStart = payloadStart + 3
+        val bitmapEnd = payloadStart + payLen
+        for (i in bitmapStart until bitmapEnd) {
+            val b = data[i].toInt() and 0xFF
+            if (b == 0) continue
+            for (n in 0..7) {
+                if ((b and (1 shl n)) == 0) continue
+                val bit = (i - bitmapStart) * 8 + n
+                return when (bit) {
+                    4 -> NoiseControlMode.NOISE_CANCELLATION_DEEP
+                    5 -> NoiseControlMode.NOISE_CANCELLATION_MEDIUM
+                    6 -> NoiseControlMode.NOISE_CANCELLATION_LIGHT
+                    else -> null
+                }
             }
         }
         return null

@@ -58,6 +58,9 @@ object RfcommController {
     private var lastTempBatt = 0
     lateinit var currentBatteryParams: BatteryParams
     private var currentAnc: Int = 1
+    /** -1 = unknown / not in smart mode; otherwise a [NoiseControlMode].ordinal of the
+     *  level smart mode is currently auto-applying (light/medium/deep). */
+    private var currentSmartAncLevel: Int = -1
     private var currentGameMode: Boolean = false
     private var currentTransparencyVocalEnhancement: Boolean = false
     private var currentSpatialAudioMode: Int = SpatialAudioMode.OFF
@@ -162,6 +165,12 @@ object RfcommController {
         }
     }
 
+    private fun changeUISmartAncLevel(ordinal: Int) {
+        sendAppStatusBroadcast(OppoPodsAction.ACTION_PODS_SMART_ANC_LEVEL_CHANGED) {
+            this.putExtra("ordinal", ordinal)
+        }
+    }
+
     private fun changeUIDualDeviceConnectionStatus(enabled: Boolean) {
         sendAppStatusBroadcast(OppoPodsAction.ACTION_PODS_DUAL_DEVICE_CONNECTION_CHANGED) {
             this.putExtra("enabled", enabled)
@@ -178,6 +187,7 @@ object RfcommController {
                     changeUIBatteryStatus(currentBatteryParams)
                 changeUIWearStatus(currentWearStatus)
                 changeUIAncStatus(currentAnc)
+                changeUISmartAncLevel(currentSmartAncLevel)
                 changeUIGameModeStatus(currentGameMode)
                 changeUITransparencyVocalEnhancementStatus(currentTransparencyVocalEnhancement)
                 changeUISpatialAudioStatus(currentSpatialAudioMode)
@@ -690,6 +700,18 @@ object RfcommController {
     private fun handleOppoPacket(packet: ByteArray) {
         Log.v(TAG, "Received: ${packet.toHexString(HexFormat.UpperCase)}")
 
+        // Smart-mode current noise-reduction level (cmd 0x0204 type 03 key 04).
+        val smartLevel = SmartAncLevelParser.parse(packet)
+        if (smartLevel != null) {
+            Log.d(TAG, "Smart ANC current level: $smartLevel")
+            val ord = smartLevel.ordinal
+            if (ord != currentSmartAncLevel) {
+                currentSmartAncLevel = ord
+                changeUISmartAncLevel(ord)
+            }
+            return
+        }
+
         // Try parse as battery response (query response, Cmd=0x8106)
         val batteryResult = BatteryParser.parse(packet)
         if (batteryResult != null) {
@@ -836,6 +858,7 @@ object RfcommController {
         mShowedConnectedToast = false
         currentWearStatus = WearStatus()
         currentAnc = 1
+        currentSmartAncLevel = -1
         currentGameMode = false
         currentTransparencyVocalEnhancement = false
         currentSpatialAudioMode = SpatialAudioMode.OFF
