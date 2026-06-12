@@ -693,14 +693,6 @@ object RfcommController {
             return
         }
 
-        val transparencyVocalEnhancementResult = TransparencyVocalEnhancementParser.parse(packet)
-        if (transparencyVocalEnhancementResult != null) {
-            Log.d(TAG, "Transparency vocal enhancement received: $transparencyVocalEnhancementResult")
-            currentTransparencyVocalEnhancement = transparencyVocalEnhancementResult
-            changeUITransparencyVocalEnhancementStatus(transparencyVocalEnhancementResult)
-            return
-        }
-
         val spatialAudioResult = SpatialAudioParser.parseModeNotify(packet)
         if (spatialAudioResult != null) {
             Log.i(TAG, "Spatial audio mode notify: packet=${packet.toHexString(HexFormat.UpperCase)}, mode=$spatialAudioResult")
@@ -738,6 +730,21 @@ object RfcommController {
                 NoiseControlMode.ADAPTIVE -> 4
             }
             changeUIAncStatus(currentAnc)
+
+            val transparencyVocalEnhancementResult = TransparencyVocalEnhancementParser.parse(packet)
+            if (transparencyVocalEnhancementResult != null) {
+                Log.d(TAG, "Transparency vocal enhancement received: $transparencyVocalEnhancementResult")
+                currentTransparencyVocalEnhancement = transparencyVocalEnhancementResult
+                changeUITransparencyVocalEnhancementStatus(transparencyVocalEnhancementResult)
+            }
+            return
+        }
+
+        val transparencyVocalEnhancementResult = TransparencyVocalEnhancementParser.parse(packet)
+        if (transparencyVocalEnhancementResult != null) {
+            Log.d(TAG, "Transparency vocal enhancement received: $transparencyVocalEnhancementResult")
+            currentTransparencyVocalEnhancement = transparencyVocalEnhancementResult
+            changeUITransparencyVocalEnhancementStatus(transparencyVocalEnhancementResult)
             return
         }
 

@@ -482,8 +482,8 @@ object WearStatusParser {
  *
  * Cmd: 0x810C (mode query response) or 0x0204 (mode change notification)
  * Scan payload for consecutive bytes 01 01 [Val1] with optional [Val2].
- * Val mapping: 0x10/0x20/0x40/0x80=NC levels, 0x04=Transparency,
- * 0x01=Off, 0x00 0x08=Adaptive. Old 4-byte reports are accepted too.
+ * Val mapping: 0x08 0x00=Off, 0x02/0x80/0x40/0x20/0x10 0x00=NC,
+ * 0x00 0x01/0x02=Transparency, 0x00 0x08=Adaptive.
  */
 object AncModeParser {
 
@@ -516,15 +516,16 @@ object AncModeParser {
                 val val2 = if (i + 3 < payloadEnd) data[i + 3].toInt() and 0xFF else 0x00
 
                 return when {
+                    val1 == 0x08 && val2 == 0x00 -> NoiseControlMode.OFF
                     val1 == 0x02 && val2 == 0x00 -> NoiseControlMode.NOISE_CANCELLATION
                     val1 == 0x80 && val2 == 0x00 -> NoiseControlMode.NOISE_CANCELLATION_SMART
                     val1 == 0x40 && val2 == 0x00 -> NoiseControlMode.NOISE_CANCELLATION_LIGHT
                     val1 == 0x20 && val2 == 0x00 -> NoiseControlMode.NOISE_CANCELLATION_MEDIUM
                     val1 == 0x10 && val2 == 0x00 -> NoiseControlMode.NOISE_CANCELLATION_DEEP
-                    val1 == 0x04 && val2 == 0x00 -> NoiseControlMode.TRANSPARENCY
                     val1 == 0x00 && val2 == 0x01 -> NoiseControlMode.TRANSPARENCY
+                    val1 == 0x00 && val2 == 0x02 -> NoiseControlMode.TRANSPARENCY
                     val1 == 0x01 && val2 == 0x00 -> NoiseControlMode.OFF
-                    val1 == 0x08 && val2 == 0x00 -> NoiseControlMode.OFF
+                    val1 == 0x04 && val2 == 0x00 -> NoiseControlMode.TRANSPARENCY
                     val1 == 0x00 && val2 == 0x08 -> NoiseControlMode.ADAPTIVE
                     else -> null
                 }
