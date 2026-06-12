@@ -39,6 +39,7 @@ import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.utils.PressFeedbackType
 
 @Composable
 fun HomePage(
@@ -47,6 +48,8 @@ fun HomePage(
     bluetoothServiceResponsive: Boolean,
     bluetoothEnabled: Boolean,
     bondedDeviceCount: Int,
+    onBluetoothStatusClick: () -> Unit,
+    onPairedBluetoothClick: () -> Unit,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     bottomContentPadding: Dp = 16.dp,
 ) {
@@ -76,6 +79,8 @@ fun HomePage(
                 bluetoothServiceResponsive = bluetoothServiceResponsive,
                 bluetoothEnabled = bluetoothEnabled,
                 bondedDeviceCount = bondedDeviceCount,
+                onBluetoothStatusClick = onBluetoothStatusClick,
+                onPairedBluetoothClick = onPairedBluetoothClick,
             )
         }
         item {
@@ -85,7 +90,15 @@ fun HomePage(
 }
 
 @Composable
-private fun StatusGrid(active: Boolean, inactiveSummary: String, bluetoothServiceResponsive: Boolean, bluetoothEnabled: Boolean, bondedDeviceCount: Int) {
+private fun StatusGrid(
+    active: Boolean,
+    inactiveSummary: String,
+    bluetoothServiceResponsive: Boolean,
+    bluetoothEnabled: Boolean,
+    bondedDeviceCount: Int,
+    onBluetoothStatusClick: () -> Unit,
+    onPairedBluetoothClick: () -> Unit,
+) {
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
         if (maxWidth >= 600.dp) {
             Row(
@@ -94,8 +107,8 @@ private fun StatusGrid(active: Boolean, inactiveSummary: String, bluetoothServic
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 StatusCard(active = active, inactiveSummary = inactiveSummary, bluetoothServiceResponsive = bluetoothServiceResponsive, modifier = Modifier.weight(1f).height(112.dp))
-                StatCard(title = "蓝牙状态", value = if (bluetoothEnabled) "已开启" else "未开启", modifier = Modifier.weight(1f).height(112.dp))
-                StatCard(title = "配对蓝牙", value = bondedDeviceCount.toString(), modifier = Modifier.weight(1f).height(112.dp))
+                StatCard(title = "蓝牙状态", value = if (bluetoothEnabled) "已开启" else "未开启", modifier = Modifier.weight(1f).height(112.dp), onClick = onBluetoothStatusClick)
+                StatCard(title = "配对蓝牙", value = bondedDeviceCount.toString(), modifier = Modifier.weight(1f).height(112.dp), onClick = onPairedBluetoothClick)
             }
         } else {
             Row(
@@ -108,8 +121,8 @@ private fun StatusGrid(active: Boolean, inactiveSummary: String, bluetoothServic
                     modifier = Modifier.weight(1f).aspectRatio(1f),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    StatCard(title = "蓝牙状态", value = if (bluetoothEnabled) "已开启" else "未开启", modifier = Modifier.weight(1f))
-                    StatCard(title = "配对蓝牙", value = bondedDeviceCount.toString(), modifier = Modifier.weight(1f))
+                    StatCard(title = "蓝牙状态", value = if (bluetoothEnabled) "已开启" else "未开启", modifier = Modifier.weight(1f), onClick = onBluetoothStatusClick)
+                    StatCard(title = "配对蓝牙", value = bondedDeviceCount.toString(), modifier = Modifier.weight(1f), onClick = onPairedBluetoothClick)
                 }
             }
         }
@@ -132,6 +145,8 @@ private fun StatusCard(active: Boolean, inactiveSummary: String, bluetoothServic
     Card(
         modifier = modifier,
         colors = CardDefaults.defaultColors(color = statusBackground),
+        pressFeedbackType = PressFeedbackType.Tilt,
+        showIndication = true,
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Box(
@@ -189,8 +204,13 @@ private fun hasRequiredBluetoothScopes(service: XposedService?): Boolean {
 }
 
 @Composable
-private fun StatCard(title: String, value: String, modifier: Modifier = Modifier) {
-    Card(modifier = modifier.fillMaxWidth()) {
+private fun StatCard(title: String, value: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        pressFeedbackType = PressFeedbackType.Tilt,
+        showIndication = true,
+        onClick = onClick,
+    ) {
         Column(
             modifier = Modifier.fillMaxSize().padding(14.dp),
             horizontalAlignment = Alignment.Start,

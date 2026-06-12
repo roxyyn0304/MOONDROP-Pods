@@ -12,6 +12,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.provider.Settings
 import android.os.SystemClock
 import android.util.Log
 import android.widget.Toast
@@ -500,6 +501,20 @@ fun MainUI(
         showDevicePicker = true
     }
 
+    fun openBluetoothSettings() {
+        val action = if (bluetoothState.enabled) Settings.ACTION_BLUETOOTH_SETTINGS else BluetoothAdapter.ACTION_REQUEST_ENABLE
+        Intent(action).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            runCatching { context.startActivity(this) }
+                .onFailure { Toast.makeText(context, R.string.connect_failed, Toast.LENGTH_SHORT).show() }
+        }
+    }
+
+    fun openDevicePicker() {
+        showDevicePicker = true
+        selectedTab = MainTab.Earphones
+    }
+
     @SuppressLint("MissingPermission")
     fun openSystemHeadsetSettings() {
         val address = connectedDeviceAddress
@@ -585,6 +600,8 @@ fun MainUI(
                 bluetoothServiceResponsive = bluetoothServiceResponsive,
                 bluetoothEnabled = bluetoothState.enabled,
                 bondedDeviceCount = bluetoothState.bondedCount,
+                onBluetoothStatusClick = { openBluetoothSettings() },
+                onPairedBluetoothClick = { openDevicePicker() },
                 showEarphoneDetail = showEarphoneDetail,
                 mainTitle = mainTitle.value,
                 displayTitle = displayTitle,
