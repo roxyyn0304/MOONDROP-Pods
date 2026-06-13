@@ -9,18 +9,11 @@
 -overloadaggressively
 -renamesourcefileattribute SourceFile
 
-# Suppress missing class warnings from KavaRef (YukiHookAPI dependency)
--dontwarn java.lang.reflect.AnnotatedType
-
 # Keep Xposed entry point
 -keep class moe.chenxy.oppopods.hook.HookEntry { *; }
--keep class moe.chenxy.oppopods.hook.HookEntry_YukiHookXposedInit { *; }
 
 # Keep all hooker classes (referenced by name in Xposed framework)
 -keep class moe.chenxy.oppopods.hook.** { *; }
-
-# Keep YukiHookAPI generated classes
--keep class com.highcapable.yukihookapi.** { *; }
 
 # Keep Parcelable data classes (used in broadcast extras)
 -keep class moe.chenxy.oppopods.utils.miuiStrongToast.data.** { *; }
