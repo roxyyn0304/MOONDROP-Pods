@@ -163,6 +163,7 @@ fun MainUI(
     val adaptiveCapabilityOverride = remember { mutableStateOf(appConfig.adaptiveCapabilityOverride) }
     val spatialAudioCapabilityOverride = remember { mutableStateOf(appConfig.spatialAudioCapabilityOverride) }
     val spatialSoundSwitchCapabilityOverride = remember { mutableStateOf(appConfig.spatialSoundSwitchCapabilityOverride) }
+    val ancImplementationCapabilityOverride = remember { mutableStateOf(appConfig.ancImplementationCapabilityOverride) }
 
     val canShowDetailPage = hookConnected.value
     val showEarphoneDetail = canShowDetailPage && !showDevicePicker
@@ -178,6 +179,7 @@ fun MainUI(
         adaptiveOverride = adaptiveCapabilityOverride.value,
         spatialAudioOverride = spatialAudioCapabilityOverride.value,
         spatialSoundSwitchOverride = spatialSoundSwitchCapabilityOverride.value,
+        ancImplementationOverride = ancImplementationCapabilityOverride.value,
     )
 
     LaunchedEffect(displayTitle, displayCapabilities) {
@@ -855,6 +857,7 @@ fun MainUI(
                                     adaptiveOverride = it,
                                     spatialAudioOverride = spatialAudioCapabilityOverride.value,
                                     spatialSoundSwitchOverride = spatialSoundSwitchCapabilityOverride.value,
+                                    ancImplementationOverride = ancImplementationCapabilityOverride.value,
                                 ).adaptiveSupported &&
                                 displayAnc == NoiseControlMode.ADAPTIVE
                             ) {
@@ -871,6 +874,12 @@ fun MainUI(
                         onSpatialSoundSwitchCapabilityOverrideChange = {
                             spatialSoundSwitchCapabilityOverride.value = it
                             ConfigManager.updateSpatialSoundSwitchCapabilityOverride(prefs, xposedService, it)
+                            broadcastConfigChanged(context, "com.android.bluetooth")
+                        },
+                        ancImplementationCapabilityOverride = ancImplementationCapabilityOverride,
+                        onAncImplementationCapabilityOverrideChange = {
+                            ancImplementationCapabilityOverride.value = it
+                            ConfigManager.updateAncImplementationCapabilityOverride(prefs, xposedService, it)
                             broadcastConfigChanged(context, "com.android.bluetooth")
                         },
                     )
