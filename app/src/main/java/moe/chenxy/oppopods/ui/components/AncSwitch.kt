@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,6 +51,7 @@ private const val ANIM_DURATION = 300
 fun AncSwitch(
     ancStatus: NoiseControlMode,
     onAncModeChange: (NoiseControlMode) -> Unit,
+    smartAncLevel: NoiseControlMode? = null,
     compact: Boolean = false,
     adaptiveModeEnabled: Boolean = true,
     transparencyVocalEnhancement: Boolean = false,
@@ -118,23 +120,44 @@ fun AncSwitch(
                 NoiseControlMode.NOISE_CANCELLATION_MEDIUM,
                 NoiseControlMode.NOISE_CANCELLATION_DEEP
             )
+            val isSmart = ancStatus == NoiseControlMode.NOISE_CANCELLATION_SMART
+            // Level smart mode is auto-applying right now (null until the bud pushes it).
+            val smartLevelLabel = when (smartAncLevel) {
+                NoiseControlMode.NOISE_CANCELLATION_DEEP -> stringResource(R.string.noise_cancellation_deep)
+                NoiseControlMode.NOISE_CANCELLATION_MEDIUM -> stringResource(R.string.noise_cancellation_medium)
+                NoiseControlMode.NOISE_CANCELLATION_LIGHT -> stringResource(R.string.noise_cancellation_light)
+                else -> null
+            }
+            // When Smart is active, show the live level inline on the 智能 tab, e.g.
+            // "智能·轻度". Single line, so the stock tab row renders it fine.
+            val smartName = stringResource(R.string.noise_cancellation_smart)
+            val smartTab = if (isSmart && smartLevelLabel != null) "$smartName·$smartLevelLabel" else smartName
             val tabs = listOf(
-                stringResource(R.string.noise_cancellation_smart),
+                smartTab,
                 stringResource(R.string.noise_cancellation_light),
                 stringResource(R.string.noise_cancellation_medium),
                 stringResource(R.string.noise_cancellation_deep)
             )
-            ResponsiveAncTabRow(
-                tabs = tabs,
-                selectedTabIndex = modes.indexOf(ancStatus).takeIf { it >= 0 } ?: 0,
-                onTabSelected = { onAncModeChange(modes[it]) },
-                compact = compact,
-                minWidth = tabMinWidth,
-                tabMaxWidth = tabMaxWidth,
-                height = tabHeight,
-                itemSpacing = tabSpacing,
-                outerPadding = tabOuterPadding
-            )
+            // Grow the row a bit while Smart is active so the (now longer) 智能 tab
+            // and the four blocks read clearly.
+            val strengthHeight = if (isSmart) (if (compact) 44.dp else 52.dp) else tabHeight
+            val strengthMaxWidth = if (isSmart) (if (compact) 88.dp else 116.dp) else tabMaxWidth
+            // TabRowWithContour caches its tab labels and won't redraw when only the
+            // 智能 label text changes (same count/index). key() on the label forces a
+            // rebuild so the live smart level actually refreshes.
+            key(smartTab) {
+                ResponsiveAncTabRow(
+                    tabs = tabs,
+                    selectedTabIndex = modes.indexOf(ancStatus).takeIf { it >= 0 } ?: 0,
+                    onTabSelected = { onAncModeChange(modes[it]) },
+                    compact = compact,
+                    minWidth = tabMinWidth,
+                    tabMaxWidth = strengthMaxWidth,
+                    height = strengthHeight,
+                    itemSpacing = tabSpacing,
+                    outerPadding = tabOuterPadding
+                )
+            }
         }
 
         if (ancStatus == NoiseControlMode.TRANSPARENCY && onTransparencyVocalEnhancementChange != null) {
