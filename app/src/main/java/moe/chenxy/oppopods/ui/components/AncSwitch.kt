@@ -11,17 +11,16 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -121,43 +120,33 @@ fun AncSwitch(
                 NoiseControlMode.NOISE_CANCELLATION_DEEP
             )
             val isSmart = ancStatus == NoiseControlMode.NOISE_CANCELLATION_SMART
-            // Level smart mode is auto-applying right now (null until the bud pushes it).
-            val smartLevelLabel = when (smartAncLevel) {
-                NoiseControlMode.NOISE_CANCELLATION_DEEP -> stringResource(R.string.noise_cancellation_deep)
-                NoiseControlMode.NOISE_CANCELLATION_MEDIUM -> stringResource(R.string.noise_cancellation_medium)
-                NoiseControlMode.NOISE_CANCELLATION_LIGHT -> stringResource(R.string.noise_cancellation_light)
+            val smartLevelIndex = when (smartAncLevel) {
+                NoiseControlMode.NOISE_CANCELLATION_LIGHT -> 1
+                NoiseControlMode.NOISE_CANCELLATION_MEDIUM -> 2
+                NoiseControlMode.NOISE_CANCELLATION_DEEP -> 3
                 else -> null
             }
-            // When Smart is active, show the live level inline on the 智能 tab, e.g.
-            // "智能·轻度". Single line, so the stock tab row renders it fine.
             val smartName = stringResource(R.string.noise_cancellation_smart)
-            val smartTab = if (isSmart && smartLevelLabel != null) "$smartName·$smartLevelLabel" else smartName
             val tabs = listOf(
-                smartTab,
+                smartName,
                 stringResource(R.string.noise_cancellation_light),
                 stringResource(R.string.noise_cancellation_medium),
                 stringResource(R.string.noise_cancellation_deep)
             )
-            // Grow the row a bit while Smart is active so the (now longer) 智能 tab
-            // and the four blocks read clearly.
-            val strengthHeight = if (isSmart) (if (compact) 44.dp else 52.dp) else tabHeight
-            val strengthMaxWidth = if (isSmart) (if (compact) 88.dp else 116.dp) else tabMaxWidth
-            // TabRowWithContour caches its tab labels and won't redraw when only the
-            // 智能 label text changes (same count/index). key() on the label forces a
-            // rebuild so the live smart level actually refreshes.
-            key(smartTab) {
-                ResponsiveAncTabRow(
-                    tabs = tabs,
-                    selectedTabIndex = modes.indexOf(ancStatus).takeIf { it >= 0 } ?: 0,
-                    onTabSelected = { onAncModeChange(modes[it]) },
-                    compact = compact,
-                    minWidth = tabMinWidth,
-                    tabMaxWidth = strengthMaxWidth,
-                    height = strengthHeight,
-                    itemSpacing = tabSpacing,
-                    outerPadding = tabOuterPadding
-                )
-            }
+
+            AncStrengthTabRow(
+                tabs = tabs,
+                selectedTabIndex = modes.indexOf(ancStatus).takeIf { it >= 0 } ?: 0,
+                assistHighlightedIndex = if (isSmart) smartLevelIndex else null,
+                onTabSelected = { onAncModeChange(modes[it]) },
+                compact = compact,
+                minWidth = tabMinWidth,
+                tabMaxWidth = tabMaxWidth,
+                height = tabHeight,
+                itemSpacing = tabSpacing,
+                outerPadding = tabOuterPadding,
+                topPadding = if (compact) 8.dp else 16.dp
+            )
         }
 
         if (ancStatus == NoiseControlMode.TRANSPARENCY && onTransparencyVocalEnhancementChange != null) {
@@ -181,6 +170,74 @@ fun AncSwitch(
 }
 
 @Composable
+private fun AncStrengthTabRow(
+    tabs: List<String>,
+    selectedTabIndex: Int,
+    assistHighlightedIndex: Int?,
+    onTabSelected: (Int) -> Unit,
+    compact: Boolean,
+    minWidth: Dp,
+    tabMaxWidth: Dp,
+    height: Dp,
+    itemSpacing: Dp,
+    outerPadding: Dp,
+    topPadding: Dp
+    ) {
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxWidth()
+            .padding(top = topPadding),
+        contentAlignment = Alignment.Center
+    ) {
+        val rowModifier = Modifier
+            .padding(horizontal = outerPadding)
+            .fillMaxWidth(if (maxWidth >= 480.dp) 0.8f else 1f)
+
+        TabRowWithContour(
+            tabs = tabs.map { "" },
+            selectedTabIndex = selectedTabIndex,
+            onTabSelected = onTabSelected,
+            modifier = rowModifier,
+            minWidth = minWidth,
+            maxWidth = tabMaxWidth,
+            height = height,
+            itemSpacing = itemSpacing
+        )
+
+        Row(
+            modifier = rowModifier.height(height),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            tabs.forEachIndexed { index, tab ->
+                val isSelected = index == selectedTabIndex
+                val isAssistHighlighted = index == assistHighlightedIndex && !isSelected
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(height),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = tab,
+                        fontSize = if (compact) 13.sp else 14.sp,
+                        fontWeight = if (isSelected || isAssistHighlighted) FontWeight.SemiBold else FontWeight.Medium,
+                        color = when {
+                            isSelected -> MiuixTheme.colorScheme.primary
+                            isAssistHighlighted -> MiuixTheme.colorScheme.primary.copy(alpha = 0.72f)
+                            else -> MiuixTheme.colorScheme.onBackground
+                        }
+                    )
+                }
+
+                if (index != tabs.lastIndex) {
+                    Spacer(modifier = Modifier.size(itemSpacing))
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun ResponsiveAncTabRow(
     tabs: List<String>,
     selectedTabIndex: Int,
@@ -190,12 +247,13 @@ private fun ResponsiveAncTabRow(
     tabMaxWidth: Dp,
     height: Dp,
     itemSpacing: Dp,
-    outerPadding: Dp
+    outerPadding: Dp,
+    topPadding: Dp = if (compact) 8.dp else 16.dp
 ) {
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = if (compact) 8.dp else 16.dp),
+            .padding(top = topPadding),
         contentAlignment = Alignment.Center
     ) {
         TabRowWithContour(
