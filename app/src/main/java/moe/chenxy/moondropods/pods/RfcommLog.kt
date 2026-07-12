@@ -3,7 +3,7 @@ package moe.chenxy.moondropods.pods
 import android.content.Context
 import android.content.Intent
 import moe.chenxy.moondropods.BuildConfig
-import moe.chenxy.moondropods.utils.miuiStrongToast.data.OppoPodsAction
+import moe.chenxy.moondropods.utils.miuiStrongToast.data.MoondropAction
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -61,7 +61,7 @@ object RfcommLog {
     }
 
     private fun Context.sendRfcommLog(entry: Entry) {
-        Intent(OppoPodsAction.ACTION_RFCOMM_LOG).apply {
+        Intent(MoondropAction.ACTION_RFCOMM_LOG).apply {
             setPackage(BuildConfig.APPLICATION_ID)
             putExtra("level", entry.level)
             putExtra("tag", entry.tag)

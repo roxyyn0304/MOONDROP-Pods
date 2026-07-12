@@ -16,7 +16,7 @@ import moe.chenxy.moondropods.hook.setObjectField
 import moe.chenxy.moondropods.pods.RfcommController
 import moe.chenxy.moondropods.pods.detectDeviceCapabilities
 import moe.chenxy.moondropods.utils.miuiStrongToast.data.BatteryParams
-import moe.chenxy.moondropods.utils.miuiStrongToast.data.OppoPodsAction
+import moe.chenxy.moondropods.utils.miuiStrongToast.data.MoondropAction
 import moe.chenxy.moondropods.utils.miuiStrongToast.data.PodParams
 
 @SuppressLint("MissingPermission")
@@ -176,40 +176,40 @@ object MiLinkServiceHook : HookContext() {
         if (ctx == null || receiverRegistered) return
         context = ctx.applicationContext ?: ctx
         val filter = IntentFilter().apply {
-            addAction(OppoPodsAction.ACTION_PODS_CONNECTED)
-            addAction(OppoPodsAction.ACTION_PODS_DISCONNECTED)
-            addAction(OppoPodsAction.ACTION_PODS_BATTERY_CHANGED)
-            addAction(OppoPodsAction.ACTION_PODS_ANC_CHANGED)
-            addAction(OppoPodsAction.ACTION_PODS_SPATIAL_AUDIO_CHANGED)
-            addAction(OppoPodsAction.ACTION_CONFIG_CHANGED)
+            addAction(MoondropAction.ACTION_PODS_CONNECTED)
+            addAction(MoondropAction.ACTION_PODS_DISCONNECTED)
+            addAction(MoondropAction.ACTION_PODS_BATTERY_CHANGED)
+            addAction(MoondropAction.ACTION_PODS_ANC_CHANGED)
+            addAction(MoondropAction.ACTION_PODS_SPATIAL_AUDIO_CHANGED)
+            addAction(MoondropAction.ACTION_CONFIG_CHANGED)
         }
         context?.registerReceiver(object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 when (intent?.action) {
-                    OppoPodsAction.ACTION_CONFIG_CHANGED -> {
+                    MoondropAction.ACTION_CONFIG_CHANGED -> {
                         refreshConfig()
                     }
-                    OppoPodsAction.ACTION_PODS_CONNECTED -> {
+                    MoondropAction.ACTION_PODS_CONNECTED -> {
                         currentAddress = intent.getStringExtra("address") ?: currentAddress
                         currentName = intent.getStringExtra("device_name") ?: currentName
                         currentAddress?.let { knownOppoAddresses.add(it.uppercase()) }
                     }
-                    OppoPodsAction.ACTION_PODS_DISCONNECTED -> {
+                    MoondropAction.ACTION_PODS_DISCONNECTED -> {
                         currentAddress = intent.getStringExtra("address") ?: currentAddress
                     }
-                    OppoPodsAction.ACTION_PODS_BATTERY_CHANGED -> {
+                    MoondropAction.ACTION_PODS_BATTERY_CHANGED -> {
                         currentAddress = intent.getStringExtra("address") ?: currentAddress
                         currentBattery = intent.batteryStatusFromExtras() ?: intent.parcelableStatus() ?: currentBattery
                         currentAddress?.let { knownOppoAddresses.add(it.uppercase()) }
                         saveState(context)
                     }
-                    OppoPodsAction.ACTION_PODS_ANC_CHANGED -> {
+                    MoondropAction.ACTION_PODS_ANC_CHANGED -> {
                         currentAddress = intent.getStringExtra("address") ?: currentAddress
                         currentAnc = intent.getIntExtra("status", currentAnc)
                         currentAddress?.let { knownOppoAddresses.add(it.uppercase()) }
                         saveState(context)
                     }
-                    OppoPodsAction.ACTION_PODS_SPATIAL_AUDIO_CHANGED -> {
+                    MoondropAction.ACTION_PODS_SPATIAL_AUDIO_CHANGED -> {
                         currentAddress = intent.getStringExtra("address") ?: currentAddress
                         currentSpatialAudioMode = intent.getIntExtra("mode", currentSpatialAudioMode)
                             .coerceIn(ConfigManager.SPATIAL_AUDIO_OFF, ConfigManager.SPATIAL_AUDIO_HEAD_TRACKING)
@@ -220,7 +220,7 @@ object MiLinkServiceHook : HookContext() {
             }
         }, filter, Context.RECEIVER_EXPORTED)
         receiverRegistered = true
-        context?.sendBroadcast(Intent(OppoPodsAction.ACTION_PODS_UI_INIT).apply {
+        context?.sendBroadcast(Intent(MoondropAction.ACTION_PODS_UI_INIT).apply {
             setPackage("com.android.bluetooth")
             addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
         })
@@ -307,7 +307,7 @@ object MiLinkServiceHook : HookContext() {
             Log.w(TAG, "sendOppoAnc skipped: context is null mode=$mode")
             return
         }
-        Intent(OppoPodsAction.ACTION_ANC_SELECT).apply {
+        Intent(MoondropAction.ACTION_ANC_SELECT).apply {
             putExtra("status", mode)
             setPackage("com.android.bluetooth")
             addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
@@ -318,7 +318,7 @@ object MiLinkServiceHook : HookContext() {
     private fun sendAncChanged(mode: Int, fallbackContext: Context? = null) {
         val ctx = fallbackContext ?: context ?: return
         listOf(BuildConfig.APPLICATION_ID, "com.milink.service", "com.android.settings").forEach { targetPackage ->
-            ctx.sendBroadcast(Intent(OppoPodsAction.ACTION_PODS_ANC_CHANGED).apply {
+            ctx.sendBroadcast(Intent(MoondropAction.ACTION_PODS_ANC_CHANGED).apply {
                 putExtra("status", mode)
                 setPackage(targetPackage)
                 addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
@@ -331,7 +331,7 @@ object MiLinkServiceHook : HookContext() {
             Log.w(TAG, "sendOppoSpatialAudio skipped: context is null mode=$mode")
             return
         }
-        Intent(OppoPodsAction.ACTION_SPATIAL_AUDIO_SET).apply {
+        Intent(MoondropAction.ACTION_SPATIAL_AUDIO_SET).apply {
             putExtra("mode", mode.coerceIn(ConfigManager.SPATIAL_AUDIO_OFF, ConfigManager.SPATIAL_AUDIO_HEAD_TRACKING))
             setPackage("com.android.bluetooth")
             addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
@@ -343,7 +343,7 @@ object MiLinkServiceHook : HookContext() {
         val ctx = fallbackContext ?: context ?: return
         val normalizedMode = mode.coerceIn(ConfigManager.SPATIAL_AUDIO_OFF, ConfigManager.SPATIAL_AUDIO_HEAD_TRACKING)
         listOf(BuildConfig.APPLICATION_ID, "com.milink.service", "com.android.settings").forEach { targetPackage ->
-            ctx.sendBroadcast(Intent(OppoPodsAction.ACTION_PODS_SPATIAL_AUDIO_CHANGED).apply {
+            ctx.sendBroadcast(Intent(MoondropAction.ACTION_PODS_SPATIAL_AUDIO_CHANGED).apply {
                 currentAddress?.let { putExtra("address", it) }
                 putExtra("mode", normalizedMode)
                 setPackage(targetPackage)

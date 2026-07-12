@@ -42,7 +42,7 @@ import moe.chenxy.moondropods.ui.AppTheme
 import moe.chenxy.moondropods.ui.components.AncSwitch
 import moe.chenxy.moondropods.ui.components.PodStatus
 import moe.chenxy.moondropods.utils.miuiStrongToast.data.BatteryParams
-import moe.chenxy.moondropods.utils.miuiStrongToast.data.OppoPodsAction
+import moe.chenxy.moondropods.utils.miuiStrongToast.data.MoondropAction
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Scaffold
@@ -180,7 +180,7 @@ private fun PopupContent(onMore: () -> Unit, onDone: () -> Unit) {
         object : BroadcastReceiver() {
             override fun onReceive(p0: Context?, p1: Intent?) {
                 when (p1?.action) {
-                    OppoPodsAction.ACTION_PODS_ANC_CHANGED -> {
+                    MoondropAction.ACTION_PODS_ANC_CHANGED -> {
                         val status = p1.getIntExtra("status", 1)
                         ancMode.value = when (status) {
                             1 -> NoiseControlMode.OFF
@@ -194,21 +194,21 @@ private fun PopupContent(onMore: () -> Unit, onDone: () -> Unit) {
                             else -> NoiseControlMode.OFF
                         }
                     }
-                    OppoPodsAction.ACTION_PODS_BATTERY_CHANGED -> {
+                    MoondropAction.ACTION_PODS_BATTERY_CHANGED -> {
                         batteryParams.value =
                             p1.getParcelableExtra("status", BatteryParams::class.java)!!
                     }
-                    OppoPodsAction.ACTION_PODS_CONNECTED -> {
+                    MoondropAction.ACTION_PODS_CONNECTED -> {
                         deviceName.value = p1.getStringExtra("device_name") ?: ""
                         if (!showDialog.value) showDialog.value = true
                     }
-                    OppoPodsAction.ACTION_PODS_DISCONNECTED -> {
+                    MoondropAction.ACTION_PODS_DISCONNECTED -> {
                         showDialog.value = false
                     }
-                    OppoPodsAction.ACTION_PODS_GAME_MODE_CHANGED -> {
+                    MoondropAction.ACTION_PODS_GAME_MODE_CHANGED -> {
                         gameMode.value = p1.getBooleanExtra("enabled", false)
                     }
-                    OppoPodsAction.ACTION_PODS_TRANSPARENCY_VOCAL_ENHANCEMENT_CHANGED -> {
+                    MoondropAction.ACTION_PODS_TRANSPARENCY_VOCAL_ENHANCEMENT_CHANGED -> {
                         transparencyVocalEnhancement.value = p1.getBooleanExtra("enabled", false)
                     }
                 }
@@ -218,19 +218,19 @@ private fun PopupContent(onMore: () -> Unit, onDone: () -> Unit) {
 
     DisposableEffect(Unit) {
         context.registerReceiver(broadcastReceiver, IntentFilter().apply {
-            addAction(OppoPodsAction.ACTION_PODS_ANC_CHANGED)
-            addAction(OppoPodsAction.ACTION_PODS_BATTERY_CHANGED)
-            addAction(OppoPodsAction.ACTION_PODS_CONNECTED)
-            addAction(OppoPodsAction.ACTION_PODS_DISCONNECTED)
-            addAction(OppoPodsAction.ACTION_PODS_GAME_MODE_CHANGED)
-            addAction(OppoPodsAction.ACTION_PODS_TRANSPARENCY_VOCAL_ENHANCEMENT_CHANGED)
+            addAction(MoondropAction.ACTION_PODS_ANC_CHANGED)
+            addAction(MoondropAction.ACTION_PODS_BATTERY_CHANGED)
+            addAction(MoondropAction.ACTION_PODS_CONNECTED)
+            addAction(MoondropAction.ACTION_PODS_DISCONNECTED)
+            addAction(MoondropAction.ACTION_PODS_GAME_MODE_CHANGED)
+            addAction(MoondropAction.ACTION_PODS_TRANSPARENCY_VOCAL_ENHANCEMENT_CHANGED)
         }, Context.RECEIVER_EXPORTED)
 
-        context.sendBroadcast(Intent(OppoPodsAction.ACTION_PODS_UI_INIT).apply {
+        context.sendBroadcast(Intent(MoondropAction.ACTION_PODS_UI_INIT).apply {
             setPackage("com.android.bluetooth")
             addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
         })
-        context.sendBroadcast(Intent(OppoPodsAction.ACTION_REFRESH_STATUS).apply {
+        context.sendBroadcast(Intent(MoondropAction.ACTION_REFRESH_STATUS).apply {
             setPackage("com.android.bluetooth")
             addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
         })
@@ -248,7 +248,7 @@ private fun PopupContent(onMore: () -> Unit, onDone: () -> Unit) {
 
         while (true) {
             delay(15_000)
-            context.sendBroadcast(Intent(OppoPodsAction.ACTION_REFRESH_STATUS).apply {
+            context.sendBroadcast(Intent(MoondropAction.ACTION_REFRESH_STATUS).apply {
                 setPackage("com.android.bluetooth")
                 addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
             })
@@ -267,7 +267,7 @@ private fun PopupContent(onMore: () -> Unit, onDone: () -> Unit) {
             NoiseControlMode.NOISE_CANCELLATION_MEDIUM -> 7
             NoiseControlMode.NOISE_CANCELLATION_DEEP -> 8
         }
-        Intent(OppoPodsAction.ACTION_ANC_SELECT).apply {
+        Intent(MoondropAction.ACTION_ANC_SELECT).apply {
             putExtra("status", status)
             setPackage("com.android.bluetooth")
             addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
@@ -277,7 +277,7 @@ private fun PopupContent(onMore: () -> Unit, onDone: () -> Unit) {
 
     fun setGameMode(enabled: Boolean) {
         gameMode.value = enabled
-        Intent(OppoPodsAction.ACTION_GAME_MODE_SET).apply {
+        Intent(MoondropAction.ACTION_GAME_MODE_SET).apply {
             putExtra("enabled", enabled)
             setPackage("com.android.bluetooth")
             addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
@@ -287,7 +287,7 @@ private fun PopupContent(onMore: () -> Unit, onDone: () -> Unit) {
 
     fun setTransparencyVocalEnhancement(enabled: Boolean) {
         transparencyVocalEnhancement.value = enabled
-        Intent(OppoPodsAction.ACTION_TRANSPARENCY_VOCAL_ENHANCEMENT_SET).apply {
+        Intent(MoondropAction.ACTION_TRANSPARENCY_VOCAL_ENHANCEMENT_SET).apply {
             putExtra("enabled", enabled)
             setPackage("com.android.bluetooth")
             addFlags(Intent.FLAG_RECEIVER_FOREGROUND)

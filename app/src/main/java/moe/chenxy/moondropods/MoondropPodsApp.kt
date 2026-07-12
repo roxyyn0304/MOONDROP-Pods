@@ -6,7 +6,7 @@ import io.github.libxposed.service.XposedService
 import io.github.libxposed.service.XposedServiceHelper
 import java.util.concurrent.CopyOnWriteArraySet
 
-class OppoPodsApp : Application(), XposedServiceHelper.OnServiceListener {
+class MoondropPodsApp : Application(), XposedServiceHelper.OnServiceListener {
     override fun onCreate() {
         super.onCreate()
         XposedServiceHelper.registerListener(this)
@@ -31,7 +31,7 @@ class OppoPodsApp : Application(), XposedServiceHelper.OnServiceListener {
     }
 
     companion object {
-        private const val TAG = "OppoPods-App"
+        private const val TAG = "MoondropPods-App"
 
         @Volatile
         var xposedService: XposedService? = null

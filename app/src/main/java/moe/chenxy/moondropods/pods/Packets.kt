@@ -7,7 +7,7 @@ package moe.chenxy.moondropods.pods
  * Header(AA) + TotalLen(1B) + Res(0000) + Cmd(2B) + Seq(1B) + PayLen(2B) + Payload
  */
 
-object OppoPackets {
+object MoondropPackets {
 
     /** Build a complete OPPO protocol packet. */
     fun buildPacket(cmd: Int, seq: Int = 0xF0, payload: ByteArray = byteArrayOf()): ByteArray {
@@ -189,56 +189,56 @@ object Cmd {
 /** Pre-built packets. */
 object Enums {
     /** Switch to Noise Cancellation: AA 0A 00 00 04 04 00 03 00 01 01 02 */
-    val ANC_NOISE_CANCEL: ByteArray = OppoPackets.buildPacket(
+    val ANC_NOISE_CANCEL: ByteArray = MoondropPackets.buildPacket(
         cmd = Cmd.SET_ANC, payload = byteArrayOf(0x01, 0x01, AncMode.NOISE_CANCELLATION.toByte())
     )
 
     /** Switch to Smart Noise Cancellation: AA 0A 00 00 04 04 00 03 00 01 01 80 */
-    val ANC_NOISE_CANCEL_SMART: ByteArray = OppoPackets.buildPacket(
+    val ANC_NOISE_CANCEL_SMART: ByteArray = MoondropPackets.buildPacket(
         cmd = Cmd.SET_ANC, payload = byteArrayOf(0x01, 0x01, AncMode.NOISE_CANCELLATION_SMART.toByte())
     )
 
     /** Switch to Light Noise Cancellation: AA 0A 00 00 04 04 00 03 00 01 01 40 */
-    val ANC_NOISE_CANCEL_LIGHT: ByteArray = OppoPackets.buildPacket(
+    val ANC_NOISE_CANCEL_LIGHT: ByteArray = MoondropPackets.buildPacket(
         cmd = Cmd.SET_ANC, payload = byteArrayOf(0x01, 0x01, AncMode.NOISE_CANCELLATION_LIGHT.toByte())
     )
 
     /** Switch to Medium Noise Cancellation: AA 0A 00 00 04 04 00 03 00 01 01 20 */
-    val ANC_NOISE_CANCEL_MEDIUM: ByteArray = OppoPackets.buildPacket(
+    val ANC_NOISE_CANCEL_MEDIUM: ByteArray = MoondropPackets.buildPacket(
         cmd = Cmd.SET_ANC, payload = byteArrayOf(0x01, 0x01, AncMode.NOISE_CANCELLATION_MEDIUM.toByte())
     )
 
     /** Switch to Deep Noise Cancellation: AA 0A 00 00 04 04 00 03 00 01 01 10 */
-    val ANC_NOISE_CANCEL_DEEP: ByteArray = OppoPackets.buildPacket(
+    val ANC_NOISE_CANCEL_DEEP: ByteArray = MoondropPackets.buildPacket(
         cmd = Cmd.SET_ANC, payload = byteArrayOf(0x01, 0x01, AncMode.NOISE_CANCELLATION_DEEP.toByte())
     )
 
     /** Switch to Transparency: AA 0A 00 00 04 04 00 03 00 01 01 04 */
-    val ANC_TRANSPARENCY: ByteArray = OppoPackets.buildPacket(
+    val ANC_TRANSPARENCY: ByteArray = MoondropPackets.buildPacket(
         cmd = Cmd.SET_ANC, payload = byteArrayOf(0x01, 0x01, AncMode.TRANSPARENCY.toByte())
     )
 
     /** Enable transparency vocal enhancement: AA 0B 00 00 04 04 57 04 00 01 01 00 02 */
-    val TRANSPARENCY_VOCAL_ENHANCEMENT_ON: ByteArray = OppoPackets.buildPacket(
+    val TRANSPARENCY_VOCAL_ENHANCEMENT_ON: ByteArray = MoondropPackets.buildPacket(
         cmd = Cmd.SET_ANC,
         seq = 0x57,
         payload = byteArrayOf(0x01, 0x01, 0x00, 0x02)
     )
 
     /** Disable transparency vocal enhancement: AA 0B 00 00 04 04 57 04 00 01 01 00 01 */
-    val TRANSPARENCY_VOCAL_ENHANCEMENT_OFF: ByteArray = OppoPackets.buildPacket(
+    val TRANSPARENCY_VOCAL_ENHANCEMENT_OFF: ByteArray = MoondropPackets.buildPacket(
         cmd = Cmd.SET_ANC,
         seq = 0x57,
         payload = byteArrayOf(0x01, 0x01, 0x00, 0x01)
     )
 
     /** Switch to Off: AA 0A 00 00 04 04 00 03 00 01 01 01 */
-    val ANC_OFF: ByteArray = OppoPackets.buildPacket(
+    val ANC_OFF: ByteArray = MoondropPackets.buildPacket(
         cmd = Cmd.SET_ANC, payload = byteArrayOf(0x01, 0x01, AncMode.OFF.toByte())
     )
 
     /** Switch to Adaptive: AA 0B 00 00 04 04 00 04 00 01 01 00 08 */
-    val ANC_ADAPTIVE: ByteArray = OppoPackets.buildPacket(
+    val ANC_ADAPTIVE: ByteArray = MoondropPackets.buildPacket(
         cmd = Cmd.SET_ANC, payload = byteArrayOf(0x01, 0x01, AncMode.ADAPTIVE_HIGH.toByte(), AncMode.ADAPTIVE_LOW.toByte())
     )
 
@@ -248,7 +248,7 @@ object Enums {
     )
 
     /** Query the bud's supported-notification bitmap. Empty payload. */
-    val QUERY_NOTIFICATION_SUPPORT: ByteArray = OppoPackets.buildPacket(
+    val QUERY_NOTIFICATION_SUPPORT: ByteArray = MoondropPackets.buildPacket(
         cmd = Cmd.QUERY_NOTIFICATION_SUPPORT, payload = byteArrayOf()
     )
 
@@ -257,31 +257,31 @@ object Enums {
         val payload = ByteArray(ids.size + 1)
         payload[0] = ids.size.toByte()
         ids.copyInto(payload, destinationOffset = 1)
-        return OppoPackets.buildPacket(cmd = Cmd.REGISTER_MULTI_NOTIFICATION, payload = payload)
+        return MoondropPackets.buildPacket(cmd = Cmd.REGISTER_MULTI_NOTIFICATION, payload = payload)
     }
 
     /** Query ANC mode: AA 09 00 00 0C 01 00 02 00 01 01 */
-    val QUERY_ANC: ByteArray = OppoPackets.buildPacket(
+    val QUERY_ANC: ByteArray = MoondropPackets.buildPacket(
         cmd = Cmd.QUERY_ANC_MODE, payload = byteArrayOf(0x01, 0x01)
     )
 
     /** Enable game mode main switch: AA 09 00 00 03 04 00 02 00 28 01 */
-    val GAME_MODE_ON: ByteArray = OppoPackets.buildPacket(
+    val GAME_MODE_ON: ByteArray = MoondropPackets.buildPacket(
         cmd = Cmd.SET_GAME_MODE, payload = byteArrayOf(GameModeFeature.MAIN.toByte(), 0x01)
     )
 
     /** Disable game mode main switch: AA 09 00 00 03 04 00 02 00 28 00 */
-    val GAME_MODE_OFF: ByteArray = OppoPackets.buildPacket(
+    val GAME_MODE_OFF: ByteArray = MoondropPackets.buildPacket(
         cmd = Cmd.SET_GAME_MODE, payload = byteArrayOf(GameModeFeature.MAIN.toByte(), 0x00)
     )
 
     /** Enable low-latency game mode: AA 09 00 00 03 04 00 02 00 06 01 */
-    val GAME_LOW_LATENCY_ON: ByteArray = OppoPackets.buildPacket(
+    val GAME_LOW_LATENCY_ON: ByteArray = MoondropPackets.buildPacket(
         cmd = Cmd.SET_GAME_MODE, payload = byteArrayOf(GameModeFeature.LOW_LATENCY.toByte(), 0x01)
     )
 
     /** Disable low-latency game mode: AA 09 00 00 03 04 00 02 00 06 00 */
-    val GAME_LOW_LATENCY_OFF: ByteArray = OppoPackets.buildPacket(
+    val GAME_LOW_LATENCY_OFF: ByteArray = MoondropPackets.buildPacket(
         cmd = Cmd.SET_GAME_MODE, payload = byteArrayOf(GameModeFeature.LOW_LATENCY.toByte(), 0x00)
     )
 
@@ -297,30 +297,30 @@ object Enums {
     }
 
     /** Set spatial audio: AA 08 00 00 22 04 F0 01 00 [mode]. */
-    fun spatialAudioPacket(mode: Int): ByteArray = OppoPackets.buildPacket(
+    fun spatialAudioPacket(mode: Int): ByteArray = MoondropPackets.buildPacket(
         cmd = Cmd.SET_SPATIAL_AUDIO,
         payload = byteArrayOf(mode.coerceIn(SpatialAudioMode.OFF, SpatialAudioMode.HEAD_TRACKING).toByte())
     )
 
     /** Set master EQ preset. Payload `[presetId]`. */
-    fun eqPresetPacket(presetId: Int): ByteArray = OppoPackets.buildPacket(
+    fun eqPresetPacket(presetId: Int): ByteArray = MoondropPackets.buildPacket(
         cmd = Cmd.SET_EQ,
         payload = byteArrayOf(presetId.toByte())
     )
 
     /** Query current EQ preset: AA 07 00 00 0F 01 F0 00 00 */
-    val QUERY_EQ: ByteArray = OppoPackets.buildPacket(
+    val QUERY_EQ: ByteArray = MoondropPackets.buildPacket(
         cmd = Cmd.QUERY_EQ_PRESET, payload = byteArrayOf()
     )
 
     /** Set spatial sound switch: AA 09 00 00 03 04 F0 02 00 1B [00/01]. */
-    fun spatialSoundSwitchPacket(enabled: Boolean): ByteArray = OppoPackets.buildPacket(
+    fun spatialSoundSwitchPacket(enabled: Boolean): ByteArray = MoondropPackets.buildPacket(
         cmd = Cmd.SET_GAME_MODE,
         payload = byteArrayOf(GameModeFeature.FREE4_SPATIAL_SOUND.toByte(), if (enabled) 0x01 else 0x00)
     )
 
     /** Set dual-device connection: AA 09 00 00 03 04 F0 02 00 11 [00/01]. */
-    fun dualDeviceConnectionPacket(enabled: Boolean): ByteArray = OppoPackets.buildPacket(
+    fun dualDeviceConnectionPacket(enabled: Boolean): ByteArray = MoondropPackets.buildPacket(
         cmd = Cmd.SET_GAME_MODE,
         payload = byteArrayOf(GameModeFeature.DUAL_DEVICE_CONNECTION.toByte(), if (enabled) 0x01 else 0x00)
     )
@@ -830,7 +830,7 @@ object NotificationSupportParser {
  *
  * Payload shape: `03 <key> 01 <bitmap bytes>`. The bitmap uses the same bit
  * positions as the SET command: bit 4 = 深度, 5 = 中度, 6 = 轻度. Key 0x01
- * (the user-selected mode) is ignored here �?that already flows through
+ * (the user-selected mode) is ignored here �?that already flows through
  * [AncModeParser].
  */
 object SmartAncLevelParser {

@@ -40,7 +40,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import moe.chenxy.moondropods.utils.miuiStrongToast.data.OppoPodsAction
+import moe.chenxy.moondropods.utils.miuiStrongToast.data.MoondropAction
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Text
@@ -70,7 +70,7 @@ fun RfcommDebugPage(
     DisposableEffect(context) {
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
-                if (intent?.action != OppoPodsAction.ACTION_RFCOMM_LOG) return
+                if (intent?.action != MoondropAction.ACTION_RFCOMM_LOG) return
                 logs.add(
                     RfcommDebugLogEntry(
                         level = intent.getStringExtra("level").orEmpty().ifBlank { "D" },
@@ -82,10 +82,10 @@ fun RfcommDebugPage(
                 while (logs.size > MAX_LOGS) logs.removeAt(0)
             }
         }
-        context.registerReceiver(receiver, IntentFilter(OppoPodsAction.ACTION_RFCOMM_LOG), Context.RECEIVER_EXPORTED)
-        context.sendRfcommDebugBroadcast(OppoPodsAction.ACTION_RFCOMM_LOG_CONNECT)
+        context.registerReceiver(receiver, IntentFilter(MoondropAction.ACTION_RFCOMM_LOG), Context.RECEIVER_EXPORTED)
+        context.sendRfcommDebugBroadcast(MoondropAction.ACTION_RFCOMM_LOG_CONNECT)
         onDispose {
-            context.sendRfcommDebugBroadcast(OppoPodsAction.ACTION_RFCOMM_LOG_DISCONNECT)
+            context.sendRfcommDebugBroadcast(MoondropAction.ACTION_RFCOMM_LOG_DISCONNECT)
             context.unregisterReceiver(receiver)
         }
     }
@@ -93,7 +93,7 @@ fun RfcommDebugPage(
     LaunchedEffect(clearRequest) {
         if (clearRequest > 0) {
             logs.clear()
-            context.sendRfcommDebugBroadcast(OppoPodsAction.ACTION_RFCOMM_LOG_CLEAR)
+            context.sendRfcommDebugBroadcast(MoondropAction.ACTION_RFCOMM_LOG_CLEAR)
         }
     }
 
@@ -145,7 +145,7 @@ fun RfcommDebugPage(
             TextButton(
                 text = "ÂèëÈÄ?,
                 onClick = {
-                    context.sendRfcommDebugBroadcast(OppoPodsAction.ACTION_RFCOMM_DEBUG_SEND) {
+                    context.sendRfcommDebugBroadcast(MoondropAction.ACTION_RFCOMM_DEBUG_SEND) {
                         putExtra("hex", hexInput)
                     }
                     hexInput = ""

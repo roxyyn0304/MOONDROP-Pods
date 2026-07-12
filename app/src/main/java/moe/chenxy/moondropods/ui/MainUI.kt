@@ -43,7 +43,7 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberDecoratedNavEntries
 import androidx.navigation3.ui.NavDisplay
-import moe.chenxy.moondropods.OppoPodsApp
+import moe.chenxy.moondropods.MoondropPodsApp
 import moe.chenxy.moondropods.R
 import moe.chenxy.moondropods.config.ConfigManager
 import moe.chenxy.moondropods.config.PodImagePrefs
@@ -59,7 +59,7 @@ import moe.chenxy.moondropods.ui.pages.RfcommDebugPage
 import moe.chenxy.moondropods.ui.pages.ThemeSettingsPage
 import moe.chenxy.moondropods.utils.RootManager
 import moe.chenxy.moondropods.utils.miuiStrongToast.data.BatteryParams
-import moe.chenxy.moondropods.utils.miuiStrongToast.data.OppoPodsAction
+import moe.chenxy.moondropods.utils.miuiStrongToast.data.MoondropAction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -118,7 +118,7 @@ fun MainUI(
     var selectedTab by remember { mutableStateOf(MainTab.Module) }
     var hasAppliedDefaultTab by remember { mutableStateOf(false) }
     var bluetoothState by remember { mutableStateOf(readBluetoothState(context)) }
-    var xposedService by remember { mutableStateOf(OppoPodsApp.xposedService) }
+    var xposedService by remember { mutableStateOf(MoondropPodsApp.xposedService) }
     var showDevicePicker by remember { mutableStateOf(false) }
     var showRestartScopeDialog by remember { mutableStateOf(false) }
     var restartingScopes by remember { mutableStateOf(false) }
@@ -225,7 +225,7 @@ fun MainUI(
         object : BroadcastReceiver() {
             override fun onReceive(p0: Context?, p1: Intent?) {
                 when (p1?.action) {
-                    OppoPodsAction.ACTION_PODS_ANC_CHANGED -> {
+                    MoondropAction.ACTION_PODS_ANC_CHANGED -> {
                         connectedDeviceAddress = p1.getStringExtra("address") ?: connectedDeviceAddress
                         val status = p1.getIntExtra("status", 1)
                         ancMode.value = when (status) {
@@ -241,18 +241,18 @@ fun MainUI(
                         }
                     }
 
-                    OppoPodsAction.ACTION_PODS_SMART_ANC_LEVEL_CHANGED -> {
+                    MoondropAction.ACTION_PODS_SMART_ANC_LEVEL_CHANGED -> {
                         val ord = p1.getIntExtra("ordinal", -1)
                         smartAncLevel.value = NoiseControlMode.entries.getOrNull(ord)
                     }
 
-                    OppoPodsAction.ACTION_PODS_BATTERY_CHANGED -> {
+                    MoondropAction.ACTION_PODS_BATTERY_CHANGED -> {
                         connectedDeviceAddress = p1.getStringExtra("address") ?: connectedDeviceAddress
                         batteryParams.value =
                             p1.getParcelableExtra("status", BatteryParams::class.java)!!
                     }
 
-                    OppoPodsAction.ACTION_PODS_WEAR_STATUS_CHANGED -> {
+                    MoondropAction.ACTION_PODS_WEAR_STATUS_CHANGED -> {
                         connectedDeviceAddress = p1.getStringExtra("address") ?: connectedDeviceAddress
                         wearStatus.value = WearStatus(
                             left = wearStateFromExtra(p1.getIntExtra("left_wear_status", -1)),
@@ -261,27 +261,27 @@ fun MainUI(
                         )
                     }
 
-                    OppoPodsAction.ACTION_PODS_GAME_MODE_CHANGED -> {
+                    MoondropAction.ACTION_PODS_GAME_MODE_CHANGED -> {
                         gameMode.value = p1.getBooleanExtra("enabled", false)
                     }
 
-                    OppoPodsAction.ACTION_PODS_TRANSPARENCY_VOCAL_ENHANCEMENT_CHANGED -> {
+                    MoondropAction.ACTION_PODS_TRANSPARENCY_VOCAL_ENHANCEMENT_CHANGED -> {
                         transparencyVocalEnhancement.value = p1.getBooleanExtra("enabled", false)
                     }
 
-                    OppoPodsAction.ACTION_PODS_SPATIAL_AUDIO_CHANGED -> {
+                    MoondropAction.ACTION_PODS_SPATIAL_AUDIO_CHANGED -> {
                         spatialAudioMode.value = p1.getIntExtra("mode", ConfigManager.SPATIAL_AUDIO_OFF)
                     }
 
-                    OppoPodsAction.ACTION_PODS_EQ_PRESET_CHANGED -> {
+                    MoondropAction.ACTION_PODS_EQ_PRESET_CHANGED -> {
                         eqPreset.value = p1.getIntExtra("preset", -1)
                     }
 
-                    OppoPodsAction.ACTION_PODS_DUAL_DEVICE_CONNECTION_CHANGED -> {
+                    MoondropAction.ACTION_PODS_DUAL_DEVICE_CONNECTION_CHANGED -> {
                         dualDeviceConnection.value = p1.getBooleanExtra("enabled", false)
                     }
 
-                    OppoPodsAction.ACTION_PODS_CONNECTED -> {
+                    MoondropAction.ACTION_PODS_CONNECTED -> {
                         val deviceName = p1.getStringExtra("device_name")
                         val shouldOpenEarphones = connectingDeviceAddress != null || !hasAppliedDefaultTab
                         connectedDeviceAddress = p1.getStringExtra("address") ?: connectedDeviceAddress
@@ -305,7 +305,7 @@ fun MainUI(
                         Log.i("OppoPods", "pod connected via hook: $deviceName")
                     }
 
-                    OppoPodsAction.ACTION_PODS_CONNECTION_STATE_CHANGED -> {
+                    MoondropAction.ACTION_PODS_CONNECTION_STATE_CHANGED -> {
                         hookConnectionState = p1.getStringExtra("state") ?: hookConnectionState
                         if (hookConnectionState == "disconnected") {
                             connectedDeviceAddress = ""
@@ -320,14 +320,14 @@ fun MainUI(
                         }
                     }
 
-                    OppoPodsAction.ACTION_PODS_DISCONNECTED -> {
+                    MoondropAction.ACTION_PODS_DISCONNECTED -> {
                         mainTitle.value = ""
                         connectedDeviceAddress = ""
                         hookConnectionState = "disconnected"
                         hookConnected.value = false
                     }
 
-                    OppoPodsAction.ACTION_MODULE_BLUETOOTH_SERVICE_ALIVE -> {
+                    MoondropAction.ACTION_MODULE_BLUETOOTH_SERVICE_ALIVE -> {
                         lastBluetoothServiceAliveMs = SystemClock.elapsedRealtime()
                         bluetoothServiceResponsive = true
                     }
@@ -345,49 +345,49 @@ fun MainUI(
         val serviceListener: (io.github.libxposed.service.XposedService?) -> Unit = { service ->
             xposedService = service
         }
-        OppoPodsApp.addServiceListener(serviceListener)
+        MoondropPodsApp.addServiceListener(serviceListener)
 
         context.registerReceiver(broadcastReceiver, IntentFilter().apply {
-            addAction(OppoPodsAction.ACTION_PODS_ANC_CHANGED)
-            addAction(OppoPodsAction.ACTION_PODS_SMART_ANC_LEVEL_CHANGED)
-            addAction(OppoPodsAction.ACTION_PODS_BATTERY_CHANGED)
-            addAction(OppoPodsAction.ACTION_PODS_WEAR_STATUS_CHANGED)
-            addAction(OppoPodsAction.ACTION_PODS_GAME_MODE_CHANGED)
-            addAction(OppoPodsAction.ACTION_PODS_TRANSPARENCY_VOCAL_ENHANCEMENT_CHANGED)
-            addAction(OppoPodsAction.ACTION_PODS_SPATIAL_AUDIO_CHANGED)
-            addAction(OppoPodsAction.ACTION_PODS_EQ_PRESET_CHANGED)
-            addAction(OppoPodsAction.ACTION_PODS_DUAL_DEVICE_CONNECTION_CHANGED)
-            addAction(OppoPodsAction.ACTION_PODS_CONNECTED)
-            addAction(OppoPodsAction.ACTION_PODS_CONNECTION_STATE_CHANGED)
-            addAction(OppoPodsAction.ACTION_PODS_DISCONNECTED)
-            addAction(OppoPodsAction.ACTION_MODULE_BLUETOOTH_SERVICE_ALIVE)
+            addAction(MoondropAction.ACTION_PODS_ANC_CHANGED)
+            addAction(MoondropAction.ACTION_PODS_SMART_ANC_LEVEL_CHANGED)
+            addAction(MoondropAction.ACTION_PODS_BATTERY_CHANGED)
+            addAction(MoondropAction.ACTION_PODS_WEAR_STATUS_CHANGED)
+            addAction(MoondropAction.ACTION_PODS_GAME_MODE_CHANGED)
+            addAction(MoondropAction.ACTION_PODS_TRANSPARENCY_VOCAL_ENHANCEMENT_CHANGED)
+            addAction(MoondropAction.ACTION_PODS_SPATIAL_AUDIO_CHANGED)
+            addAction(MoondropAction.ACTION_PODS_EQ_PRESET_CHANGED)
+            addAction(MoondropAction.ACTION_PODS_DUAL_DEVICE_CONNECTION_CHANGED)
+            addAction(MoondropAction.ACTION_PODS_CONNECTED)
+            addAction(MoondropAction.ACTION_PODS_CONNECTION_STATE_CHANGED)
+            addAction(MoondropAction.ACTION_PODS_DISCONNECTED)
+            addAction(MoondropAction.ACTION_MODULE_BLUETOOTH_SERVICE_ALIVE)
             addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
             addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
         }, Context.RECEIVER_EXPORTED)
 
-        sendBluetoothModuleBroadcast(context, OppoPodsAction.ACTION_PODS_UI_INIT)
+        sendBluetoothModuleBroadcast(context, MoondropAction.ACTION_PODS_UI_INIT)
 
         onDispose {
-            sendBluetoothModuleBroadcast(context, OppoPodsAction.ACTION_PODS_UI_CLOSED)
+            sendBluetoothModuleBroadcast(context, MoondropAction.ACTION_PODS_UI_CLOSED)
             try {
                 context.unregisterReceiver(broadcastReceiver)
             } catch (_: Exception) {}
-            OppoPodsApp.removeServiceListener(serviceListener)
+            MoondropPodsApp.removeServiceListener(serviceListener)
         }
     }
 
     LaunchedEffect(Unit) {
         while (true) {
-            sendBluetoothModuleBroadcast(context, OppoPodsAction.ACTION_PODS_UI_INIT)
-            sendBluetoothModuleBroadcast(context, OppoPodsAction.ACTION_REFRESH_STATUS)
+            sendBluetoothModuleBroadcast(context, MoondropAction.ACTION_PODS_UI_INIT)
+            sendBluetoothModuleBroadcast(context, MoondropAction.ACTION_REFRESH_STATUS)
             delay(30_000L)
         }
     }
 
     LaunchedEffect(selectedTab, hookConnected.value) {
-        sendBluetoothModuleBroadcast(context, OppoPodsAction.ACTION_PODS_UI_INIT)
+        sendBluetoothModuleBroadcast(context, MoondropAction.ACTION_PODS_UI_INIT)
         if (selectedTab == MainTab.Module || hookConnected.value) {
-            sendBluetoothModuleBroadcast(context, OppoPodsAction.ACTION_REFRESH_STATUS)
+            sendBluetoothModuleBroadcast(context, MoondropAction.ACTION_REFRESH_STATUS)
         }
     }
 
@@ -411,7 +411,7 @@ fun MainUI(
             NoiseControlMode.NOISE_CANCELLATION_MEDIUM -> 7
             NoiseControlMode.NOISE_CANCELLATION_DEEP -> 8
         }
-        Intent(OppoPodsAction.ACTION_ANC_SELECT).apply {
+        Intent(MoondropAction.ACTION_ANC_SELECT).apply {
             this.putExtra("status", status)
             setPackage("com.android.bluetooth")
             addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
@@ -421,7 +421,7 @@ fun MainUI(
 
     fun setGameMode(enabled: Boolean) {
         gameMode.value = enabled
-        Intent(OppoPodsAction.ACTION_GAME_MODE_SET).apply {
+        Intent(MoondropAction.ACTION_GAME_MODE_SET).apply {
             this.putExtra("enabled", enabled)
             setPackage("com.android.bluetooth")
             addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
@@ -431,7 +431,7 @@ fun MainUI(
 
     fun setTransparencyVocalEnhancement(enabled: Boolean) {
         transparencyVocalEnhancement.value = enabled
-        Intent(OppoPodsAction.ACTION_TRANSPARENCY_VOCAL_ENHANCEMENT_SET).apply {
+        Intent(MoondropAction.ACTION_TRANSPARENCY_VOCAL_ENHANCEMENT_SET).apply {
             this.putExtra("enabled", enabled)
             setPackage("com.android.bluetooth")
             addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
@@ -461,7 +461,7 @@ fun MainUI(
         showDevicePicker = true
         selectedTab = MainTab.Earphones
         hookConnectionState = "connecting"
-        Intent(OppoPodsAction.ACTION_CONNECT_POD_REQUEST).apply {
+        Intent(MoondropAction.ACTION_CONNECT_POD_REQUEST).apply {
             putExtra("device", device)
             setPackage("com.android.bluetooth")
             addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
@@ -473,7 +473,7 @@ fun MainUI(
         val normalizedMode = mode.coerceIn(ConfigManager.SPATIAL_AUDIO_OFF, ConfigManager.SPATIAL_AUDIO_HEAD_TRACKING)
         spatialAudioMode.value = normalizedMode
         prefs.edit().putInt("spatial_audio_mode", normalizedMode).apply()
-        Intent(OppoPodsAction.ACTION_SPATIAL_AUDIO_SET).apply {
+        Intent(MoondropAction.ACTION_SPATIAL_AUDIO_SET).apply {
             this.putExtra("mode", normalizedMode)
             setPackage("com.android.bluetooth")
             addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
@@ -483,7 +483,7 @@ fun MainUI(
 
     fun setEqPreset(preset: Int) {
         eqPreset.value = preset
-        Intent(OppoPodsAction.ACTION_EQ_PRESET_SET).apply {
+        Intent(MoondropAction.ACTION_EQ_PRESET_SET).apply {
             this.putExtra("preset", preset)
             setPackage("com.android.bluetooth")
             addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
@@ -493,7 +493,7 @@ fun MainUI(
 
     fun setDualDeviceConnection(enabled: Boolean) {
         dualDeviceConnection.value = enabled
-        Intent(OppoPodsAction.ACTION_DUAL_DEVICE_CONNECTION_SET).apply {
+        Intent(MoondropAction.ACTION_DUAL_DEVICE_CONNECTION_SET).apply {
             this.putExtra("enabled", enabled)
             setPackage("com.android.bluetooth")
             addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
@@ -510,7 +510,7 @@ fun MainUI(
             connectedDeviceAddress = ""
             mainTitle.value = ""
         }
-        Intent(OppoPodsAction.ACTION_DISCONNECT_POD_REQUEST).apply {
+        Intent(MoondropAction.ACTION_DISCONNECT_POD_REQUEST).apply {
             putExtra("device", device)
             setPackage("com.android.bluetooth")
             addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
@@ -574,7 +574,7 @@ fun MainUI(
 
     fun refreshStatus() {
         if (hookConnected.value) {
-            context.sendBroadcast(Intent(OppoPodsAction.ACTION_REFRESH_STATUS).apply {
+            context.sendBroadcast(Intent(MoondropAction.ACTION_REFRESH_STATUS).apply {
                 setPackage("com.android.bluetooth")
                 addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
             })
@@ -696,7 +696,7 @@ fun MainUI(
                 onAutoGameModeChange = {
                     autoGameMode.value = it
                     prefs.edit().putBoolean("auto_game_mode", it).apply()
-                    Intent(OppoPodsAction.ACTION_AUTO_GAME_MODE_CHANGED).apply {
+                    Intent(MoondropAction.ACTION_AUTO_GAME_MODE_CHANGED).apply {
                         setPackage("com.android.bluetooth")
                         putExtra("enabled", it)
                         addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
@@ -709,7 +709,7 @@ fun MainUI(
                     prefs.edit()
                         .putString(GameModeImplementation.PREF_KEY, it.preferenceValue)
                         .apply()
-                    Intent(OppoPodsAction.ACTION_GAME_MODE_IMPLEMENTATION_CHANGED).apply {
+                    Intent(MoondropAction.ACTION_GAME_MODE_IMPLEMENTATION_CHANGED).apply {
                         setPackage("com.android.bluetooth")
                         putExtra(GameModeImplementation.PREF_KEY, it.preferenceValue)
                         addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
@@ -1000,7 +1000,7 @@ private fun setLauncherIconHidden(context: Context, hidden: Boolean) {
 }
 
 private fun broadcastConfigChanged(context: Context, packageName: String) {
-    Intent(OppoPodsAction.ACTION_CONFIG_CHANGED).apply {
+    Intent(MoondropAction.ACTION_CONFIG_CHANGED).apply {
         setPackage(packageName)
         addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
         context.sendBroadcast(this)

@@ -27,7 +27,7 @@ import moe.chenxy.moondropods.utils.SystemApisUtils.setIconVisibility
 import moe.chenxy.moondropods.utils.miuiStrongToast.MiuiStrongToastUtil
 import moe.chenxy.moondropods.utils.miuiStrongToast.MiuiStrongToastUtil.cancelPodsNotificationByMiuiBt
 import moe.chenxy.moondropods.utils.miuiStrongToast.data.BatteryParams
-import moe.chenxy.moondropods.utils.miuiStrongToast.data.OppoPodsAction
+import moe.chenxy.moondropods.utils.miuiStrongToast.data.MoondropAction
 import moe.chenxy.moondropods.utils.miuiStrongToast.data.PodParams
 import java.io.IOException
 import java.io.InputStream
@@ -105,22 +105,22 @@ object RfcommController {
 
     private fun changeUIAncStatus(status: Int) {
         if (status < 1 || status > 8) return
-        sendAppStatusBroadcast(OppoPodsAction.ACTION_PODS_ANC_CHANGED) {
+        sendAppStatusBroadcast(MoondropAction.ACTION_PODS_ANC_CHANGED) {
             if (::mDevice.isInitialized) this.putExtra("address", mDevice.address)
             this.putExtra("status", status)
         }
-        sendExternalPodsStatusBroadcast(OppoPodsAction.ACTION_PODS_ANC_CHANGED) {
+        sendExternalPodsStatusBroadcast(MoondropAction.ACTION_PODS_ANC_CHANGED) {
             putExtra("status", status)
         }
     }
 
     private fun changeUIBatteryStatus(status: BatteryParams) {
-        sendAppStatusBroadcast(OppoPodsAction.ACTION_PODS_BATTERY_CHANGED) {
+        sendAppStatusBroadcast(MoondropAction.ACTION_PODS_BATTERY_CHANGED) {
             if (::mDevice.isInitialized) this.putExtra("address", mDevice.address)
             this.putExtra("status", status)
             putBatteryExtras(status)
         }
-        sendExternalPodsStatusBroadcast(OppoPodsAction.ACTION_PODS_BATTERY_CHANGED) {
+        sendExternalPodsStatusBroadcast(MoondropAction.ACTION_PODS_BATTERY_CHANGED) {
             putExtra("status", status)
             putBatteryExtras(status)
         }
@@ -129,57 +129,57 @@ object RfcommController {
     private var currentWearStatus = WearStatus()
 
     private fun changeUIWearStatus(status: WearStatus) {
-        sendAppStatusBroadcast(OppoPodsAction.ACTION_PODS_WEAR_STATUS_CHANGED) {
+        sendAppStatusBroadcast(MoondropAction.ACTION_PODS_WEAR_STATUS_CHANGED) {
             if (::mDevice.isInitialized) this.putExtra("address", mDevice.address)
             putWearStatusExtras(status)
         }
-        sendExternalPodsStatusBroadcast(OppoPodsAction.ACTION_PODS_WEAR_STATUS_CHANGED) {
+        sendExternalPodsStatusBroadcast(MoondropAction.ACTION_PODS_WEAR_STATUS_CHANGED) {
             putWearStatusExtras(status)
         }
     }
 
     private fun changeUIGameModeStatus(enabled: Boolean) {
-        sendAppStatusBroadcast(OppoPodsAction.ACTION_PODS_GAME_MODE_CHANGED) {
+        sendAppStatusBroadcast(MoondropAction.ACTION_PODS_GAME_MODE_CHANGED) {
             this.putExtra("enabled", enabled)
         }
     }
 
     private fun changeUITransparencyVocalEnhancementStatus(enabled: Boolean) {
-        sendAppStatusBroadcast(OppoPodsAction.ACTION_PODS_TRANSPARENCY_VOCAL_ENHANCEMENT_CHANGED) {
+        sendAppStatusBroadcast(MoondropAction.ACTION_PODS_TRANSPARENCY_VOCAL_ENHANCEMENT_CHANGED) {
             this.putExtra("enabled", enabled)
         }
-        sendExternalPodsStatusBroadcast(OppoPodsAction.ACTION_PODS_TRANSPARENCY_VOCAL_ENHANCEMENT_CHANGED) {
+        sendExternalPodsStatusBroadcast(MoondropAction.ACTION_PODS_TRANSPARENCY_VOCAL_ENHANCEMENT_CHANGED) {
             putExtra("enabled", enabled)
         }
     }
 
     private fun changeUISpatialAudioStatus(mode: Int) {
-        sendAppStatusBroadcast(OppoPodsAction.ACTION_PODS_SPATIAL_AUDIO_CHANGED) {
+        sendAppStatusBroadcast(MoondropAction.ACTION_PODS_SPATIAL_AUDIO_CHANGED) {
             this.putExtra("mode", mode)
         }
     }
 
     private fun changeUIEqPreset(presetId: Int) {
-        sendAppStatusBroadcast(OppoPodsAction.ACTION_PODS_EQ_PRESET_CHANGED) {
+        sendAppStatusBroadcast(MoondropAction.ACTION_PODS_EQ_PRESET_CHANGED) {
             this.putExtra("preset", presetId)
         }
     }
 
     private fun changeUISmartAncLevel(ordinal: Int) {
-        sendAppStatusBroadcast(OppoPodsAction.ACTION_PODS_SMART_ANC_LEVEL_CHANGED) {
+        sendAppStatusBroadcast(MoondropAction.ACTION_PODS_SMART_ANC_LEVEL_CHANGED) {
             this.putExtra("ordinal", ordinal)
         }
     }
 
     private fun changeUIDualDeviceConnectionStatus(enabled: Boolean) {
-        sendAppStatusBroadcast(OppoPodsAction.ACTION_PODS_DUAL_DEVICE_CONNECTION_CHANGED) {
+        sendAppStatusBroadcast(MoondropAction.ACTION_PODS_DUAL_DEVICE_CONNECTION_CHANGED) {
             this.putExtra("enabled", enabled)
         }
     }
 
     fun handleUIEvent(intent: Intent) {
         when (intent.action) {
-            OppoPodsAction.ACTION_PODS_UI_INIT -> {
+            MoondropAction.ACTION_PODS_UI_INIT -> {
                 markAppUiActive()
                 Log.i(TAG, "UI Init")
                 changeUIConnectionState(currentConnectionState())
@@ -194,79 +194,79 @@ object RfcommController {
                 changeUIEqPreset(currentEqPreset)
                 changeUIDualDeviceConnectionStatus(currentDualDeviceConnection)
                 if (::mDevice.isInitialized && isConnected) {
-                    sendAppStatusBroadcast(OppoPodsAction.ACTION_PODS_CONNECTED) {
+                    sendAppStatusBroadcast(MoondropAction.ACTION_PODS_CONNECTED) {
                         this.putExtra("address", mDevice.address)
                         this.putExtra("device_name", mDevice.name ?: cachedDeviceName)
                     }
-                    sendExternalPodsStatusBroadcast(OppoPodsAction.ACTION_PODS_CONNECTED) {
+                    sendExternalPodsStatusBroadcast(MoondropAction.ACTION_PODS_CONNECTED) {
                         putExtra("device_name", mDevice.name ?: cachedDeviceName)
                     }
                 }
             }
-            OppoPodsAction.ACTION_PODS_UI_CLOSED -> {
+            MoondropAction.ACTION_PODS_UI_CLOSED -> {
                 appUiActive = false
                 appUiActiveUntilMs = 0L
                 Log.i(TAG, "UI Closed")
             }
-            OppoPodsAction.ACTION_ANC_SELECT -> {
+            MoondropAction.ACTION_ANC_SELECT -> {
                 val status = intent.getIntExtra("status", 0)
                 setANCMode(status)
             }
-            OppoPodsAction.ACTION_REFRESH_STATUS -> {
+            MoondropAction.ACTION_REFRESH_STATUS -> {
                 queryStatus(immediateReconnect = true)
             }
-            OppoPodsAction.ACTION_GAME_MODE_SET -> {
+            MoondropAction.ACTION_GAME_MODE_SET -> {
                 val enabled = intent.getBooleanExtra("enabled", false)
                 setGameMode(enabled)
             }
-            OppoPodsAction.ACTION_AUTO_GAME_MODE_CHANGED -> {
+            MoondropAction.ACTION_AUTO_GAME_MODE_CHANGED -> {
                 autoGameModeEnabled = intent.getBooleanExtra("enabled", autoGameModeEnabled)
                 Log.d(TAG, "Auto game mode synced: $autoGameModeEnabled")
             }
-            OppoPodsAction.ACTION_GAME_MODE_IMPLEMENTATION_CHANGED -> {
+            MoondropAction.ACTION_GAME_MODE_IMPLEMENTATION_CHANGED -> {
                 gameModeImplementation = GameModeImplementation.fromPreference(
                     intent.getStringExtra(GameModeImplementation.PREF_KEY)
                 )
                 Log.d(TAG, "Game mode implementation synced: ${gameModeImplementation.preferenceValue}")
             }
-            OppoPodsAction.ACTION_TRANSPARENCY_VOCAL_ENHANCEMENT_SET -> {
+            MoondropAction.ACTION_TRANSPARENCY_VOCAL_ENHANCEMENT_SET -> {
                 val enabled = intent.getBooleanExtra("enabled", false)
                 setTransparencyVocalEnhancement(enabled)
             }
-            OppoPodsAction.ACTION_SPATIAL_AUDIO_SET -> {
+            MoondropAction.ACTION_SPATIAL_AUDIO_SET -> {
                 val mode = intent.getIntExtra("mode", SpatialAudioMode.OFF)
                 setSpatialAudioMode(mode)
             }
-            OppoPodsAction.ACTION_EQ_PRESET_SET -> {
+            MoondropAction.ACTION_EQ_PRESET_SET -> {
                 val preset = intent.getIntExtra("preset", -1)
                 if (preset in EqPreset.ALL) setEqPreset(preset)
             }
-            OppoPodsAction.ACTION_DUAL_DEVICE_CONNECTION_SET -> {
+            MoondropAction.ACTION_DUAL_DEVICE_CONNECTION_SET -> {
                 val enabled = intent.getBooleanExtra("enabled", false)
                 setDualDeviceConnection(enabled)
             }
-            OppoPodsAction.ACTION_CYCLE_ANC -> {
+            MoondropAction.ACTION_CYCLE_ANC -> {
                 cycleAnc()
             }
-            OppoPodsAction.ACTION_CONFIG_CHANGED -> {
+            MoondropAction.ACTION_CONFIG_CHANGED -> {
                 ConfigManager.refreshFromPrefs(mPrefs)
                 Log.d(TAG, "Config synced")
                 if (!currentCapabilities().adaptiveSupported && currentAnc == 4) {
                     setANCMode(2)
                 }
             }
-            OppoPodsAction.ACTION_RFCOMM_LOG_CONNECT -> {
+            MoondropAction.ACTION_RFCOMM_LOG_CONNECT -> {
                 if (!RfcommLog.isEnabled()) {
                     RfcommLog.setEnabled(true, mContext)
                 }
             }
-            OppoPodsAction.ACTION_RFCOMM_LOG_DISCONNECT -> {
+            MoondropAction.ACTION_RFCOMM_LOG_DISCONNECT -> {
                 RfcommLog.setEnabled(false)
             }
-            OppoPodsAction.ACTION_RFCOMM_LOG_CLEAR -> {
+            MoondropAction.ACTION_RFCOMM_LOG_CLEAR -> {
                 RfcommLog.clear()
             }
-            OppoPodsAction.ACTION_RFCOMM_DEBUG_SEND -> {
+            MoondropAction.ACTION_RFCOMM_DEBUG_SEND -> {
                 val hex = intent.getStringExtra("hex").orEmpty()
                 sendDebugHex(hex)
             }
@@ -294,7 +294,7 @@ object RfcommController {
     }
 
     private fun changeUIConnectionState(state: String) {
-        sendAppStatusBroadcast(OppoPodsAction.ACTION_PODS_CONNECTION_STATE_CHANGED) {
+        sendAppStatusBroadcast(MoondropAction.ACTION_PODS_CONNECTION_STATE_CHANGED) {
             if (::mDevice.isInitialized) {
                 putExtra("address", mDevice.address)
                 putExtra("device_name", mDevice.name ?: cachedDeviceName)
@@ -408,11 +408,11 @@ object RfcommController {
 
         if (shouldShowToast) {
             changeUIConnectionState("connected")
-            sendAppStatusBroadcast(OppoPodsAction.ACTION_PODS_CONNECTED) {
+            sendAppStatusBroadcast(MoondropAction.ACTION_PODS_CONNECTED) {
                 this.putExtra("address", mDevice.address)
                 this.putExtra("device_name", mDevice.name ?: cachedDeviceName)
             }
-            sendExternalPodsStatusBroadcast(OppoPodsAction.ACTION_PODS_CONNECTED) {
+            sendExternalPodsStatusBroadcast(MoondropAction.ACTION_PODS_CONNECTED) {
                 putExtra("device_name", mDevice.name ?: cachedDeviceName)
             }
             if (shouldShowIsland(ConfigManager.ISLAND_SHOW_TIMING_CONNECTED)) {
@@ -488,23 +488,23 @@ object RfcommController {
 
         if (!receiverRegistered) {
             context.registerReceiver(broadcastReceiver, IntentFilter().apply {
-                this.addAction(OppoPodsAction.ACTION_ANC_SELECT)
-                this.addAction(OppoPodsAction.ACTION_PODS_UI_INIT)
-                this.addAction(OppoPodsAction.ACTION_PODS_UI_CLOSED)
-                this.addAction(OppoPodsAction.ACTION_REFRESH_STATUS)
-                this.addAction(OppoPodsAction.ACTION_GAME_MODE_SET)
-                this.addAction(OppoPodsAction.ACTION_AUTO_GAME_MODE_CHANGED)
-                this.addAction(OppoPodsAction.ACTION_GAME_MODE_IMPLEMENTATION_CHANGED)
-                this.addAction(OppoPodsAction.ACTION_TRANSPARENCY_VOCAL_ENHANCEMENT_SET)
-                this.addAction(OppoPodsAction.ACTION_SPATIAL_AUDIO_SET)
-                this.addAction(OppoPodsAction.ACTION_EQ_PRESET_SET)
-                this.addAction(OppoPodsAction.ACTION_DUAL_DEVICE_CONNECTION_SET)
-                this.addAction(OppoPodsAction.ACTION_CYCLE_ANC)
-                this.addAction(OppoPodsAction.ACTION_CONFIG_CHANGED)
-                this.addAction(OppoPodsAction.ACTION_RFCOMM_LOG_CONNECT)
-                this.addAction(OppoPodsAction.ACTION_RFCOMM_LOG_DISCONNECT)
-                this.addAction(OppoPodsAction.ACTION_RFCOMM_LOG_CLEAR)
-                this.addAction(OppoPodsAction.ACTION_RFCOMM_DEBUG_SEND)
+                this.addAction(MoondropAction.ACTION_ANC_SELECT)
+                this.addAction(MoondropAction.ACTION_PODS_UI_INIT)
+                this.addAction(MoondropAction.ACTION_PODS_UI_CLOSED)
+                this.addAction(MoondropAction.ACTION_REFRESH_STATUS)
+                this.addAction(MoondropAction.ACTION_GAME_MODE_SET)
+                this.addAction(MoondropAction.ACTION_AUTO_GAME_MODE_CHANGED)
+                this.addAction(MoondropAction.ACTION_GAME_MODE_IMPLEMENTATION_CHANGED)
+                this.addAction(MoondropAction.ACTION_TRANSPARENCY_VOCAL_ENHANCEMENT_SET)
+                this.addAction(MoondropAction.ACTION_SPATIAL_AUDIO_SET)
+                this.addAction(MoondropAction.ACTION_EQ_PRESET_SET)
+                this.addAction(MoondropAction.ACTION_DUAL_DEVICE_CONNECTION_SET)
+                this.addAction(MoondropAction.ACTION_CYCLE_ANC)
+                this.addAction(MoondropAction.ACTION_CONFIG_CHANGED)
+                this.addAction(MoondropAction.ACTION_RFCOMM_LOG_CONNECT)
+                this.addAction(MoondropAction.ACTION_RFCOMM_LOG_DISCONNECT)
+                this.addAction(MoondropAction.ACTION_RFCOMM_LOG_CLEAR)
+                this.addAction(MoondropAction.ACTION_RFCOMM_DEBUG_SEND)
             }, Context.RECEIVER_EXPORTED)
             receiverRegistered = true
         }
@@ -861,7 +861,7 @@ object RfcommController {
         mContext?.let {
             stopRoutesScan()
             cancelPodsNotificationByMiuiBt(context, device)
-            sendAppStatusBroadcast(OppoPodsAction.ACTION_PODS_DISCONNECTED) {
+            sendAppStatusBroadcast(MoondropAction.ACTION_PODS_DISCONNECTED) {
                 putExtra("address", device.address)
             }
             if (receiverRegistered) {

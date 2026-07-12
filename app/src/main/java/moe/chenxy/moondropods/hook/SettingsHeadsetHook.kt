@@ -11,7 +11,7 @@ import android.os.Handler
 import android.os.Looper
 import moe.chenxy.moondropods.BuildConfig
 import moe.chenxy.moondropods.utils.miuiStrongToast.data.BatteryParams
-import moe.chenxy.moondropods.utils.miuiStrongToast.data.OppoPodsAction
+import moe.chenxy.moondropods.utils.miuiStrongToast.data.MoondropAction
 import moe.chenxy.moondropods.utils.miuiStrongToast.data.PodParams
 import java.util.WeakHashMap
 
@@ -371,26 +371,26 @@ object SettingsHeadsetHook : HookContext() {
         context = ctx.applicationContext ?: ctx
         loadState()
         val filter = IntentFilter().apply {
-            addAction(OppoPodsAction.ACTION_PODS_CONNECTED)
-            addAction(OppoPodsAction.ACTION_PODS_DISCONNECTED)
-            addAction(OppoPodsAction.ACTION_PODS_BATTERY_CHANGED)
-            addAction(OppoPodsAction.ACTION_PODS_ANC_CHANGED)
-            addAction(OppoPodsAction.ACTION_PODS_TRANSPARENCY_VOCAL_ENHANCEMENT_CHANGED)
-            addAction(OppoPodsAction.ACTION_CONFIG_CHANGED)
+            addAction(MoondropAction.ACTION_PODS_CONNECTED)
+            addAction(MoondropAction.ACTION_PODS_DISCONNECTED)
+            addAction(MoondropAction.ACTION_PODS_BATTERY_CHANGED)
+            addAction(MoondropAction.ACTION_PODS_ANC_CHANGED)
+            addAction(MoondropAction.ACTION_PODS_TRANSPARENCY_VOCAL_ENHANCEMENT_CHANGED)
+            addAction(MoondropAction.ACTION_CONFIG_CHANGED)
         }
         context?.registerReceiver(object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 when (intent?.action) {
-                    OppoPodsAction.ACTION_CONFIG_CHANGED -> {
+                    MoondropAction.ACTION_CONFIG_CHANGED -> {
                         refreshConfig()
                         updateFragments()
                     }
-                    OppoPodsAction.ACTION_PODS_CONNECTED -> {
+                    MoondropAction.ACTION_PODS_CONNECTED -> {
                         currentAddress = intent.getStringExtra("address") ?: currentAddress
                         currentName = intent.getStringExtra("device_name") ?: currentName
                         currentAddress?.let { knownOppoAddresses.add(it.uppercase()) }
                     }
-                    OppoPodsAction.ACTION_PODS_BATTERY_CHANGED -> {
+                    MoondropAction.ACTION_PODS_BATTERY_CHANGED -> {
                         currentAddress = intent.getStringExtra("address") ?: currentAddress
                         currentBattery = intent.batteryStatusFromExtras() ?: intent.parcelableStatus() ?: currentBattery
                         currentAddress?.let { knownOppoAddresses.add(it.uppercase()) }
@@ -398,14 +398,14 @@ object SettingsHeadsetHook : HookContext() {
                         updateBatteryViews()
                         updateFragments()
                     }
-                    OppoPodsAction.ACTION_PODS_ANC_CHANGED -> {
+                    MoondropAction.ACTION_PODS_ANC_CHANGED -> {
                         currentAddress = intent.getStringExtra("address") ?: currentAddress
                         currentAnc = intent.getIntExtra("status", currentAnc)
                         currentAddress?.let { knownOppoAddresses.add(it.uppercase()) }
                         saveState(context)
                         updateFragments()
                     }
-                    OppoPodsAction.ACTION_PODS_TRANSPARENCY_VOCAL_ENHANCEMENT_CHANGED -> {
+                    MoondropAction.ACTION_PODS_TRANSPARENCY_VOCAL_ENHANCEMENT_CHANGED -> {
                         currentAddress = intent.getStringExtra("address") ?: currentAddress
                         currentTransparencyVocalEnhancement = intent.getBooleanExtra("enabled", currentTransparencyVocalEnhancement)
                         currentAddress?.let { knownOppoAddresses.add(it.uppercase()) }
@@ -423,7 +423,7 @@ object SettingsHeadsetHook : HookContext() {
 
     private fun requestBluetoothStatus(reason: String) {
         val ctx = context ?: return
-        listOf(OppoPodsAction.ACTION_PODS_UI_INIT, OppoPodsAction.ACTION_REFRESH_STATUS).forEach { action ->
+        listOf(MoondropAction.ACTION_PODS_UI_INIT, MoondropAction.ACTION_REFRESH_STATUS).forEach { action ->
             ctx.sendBroadcast(Intent(action).apply {
                 setPackage("com.android.bluetooth")
                 addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
@@ -636,7 +636,7 @@ object SettingsHeadsetHook : HookContext() {
             Log.w(TAG, "sendOppoAnc skipped: context is null mode=$mode")
             return
         }
-        ctx.sendBroadcast(Intent(OppoPodsAction.ACTION_ANC_SELECT).apply {
+        ctx.sendBroadcast(Intent(MoondropAction.ACTION_ANC_SELECT).apply {
             putExtra("status", mode)
             setPackage("com.android.bluetooth")
             addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
@@ -649,17 +649,17 @@ object SettingsHeadsetHook : HookContext() {
             return
         }
         currentTransparencyVocalEnhancement = enabled
-        ctx.sendBroadcast(Intent(OppoPodsAction.ACTION_TRANSPARENCY_VOCAL_ENHANCEMENT_SET).apply {
+        ctx.sendBroadcast(Intent(MoondropAction.ACTION_TRANSPARENCY_VOCAL_ENHANCEMENT_SET).apply {
             putExtra("enabled", enabled)
             setPackage("com.android.bluetooth")
             addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
         })
-        ctx.sendBroadcast(Intent(OppoPodsAction.ACTION_PODS_TRANSPARENCY_VOCAL_ENHANCEMENT_CHANGED).apply {
+        ctx.sendBroadcast(Intent(MoondropAction.ACTION_PODS_TRANSPARENCY_VOCAL_ENHANCEMENT_CHANGED).apply {
             putExtra("enabled", enabled)
             setPackage(BuildConfig.APPLICATION_ID)
             addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
         })
-        ctx.sendBroadcast(Intent(OppoPodsAction.ACTION_REFRESH_STATUS).apply {
+        ctx.sendBroadcast(Intent(MoondropAction.ACTION_REFRESH_STATUS).apply {
             setPackage("com.android.bluetooth")
             addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
         })
@@ -669,7 +669,7 @@ object SettingsHeadsetHook : HookContext() {
     private fun sendAncChanged(mode: Int) {
         val ctx = context ?: return
         listOf(BuildConfig.APPLICATION_ID, "com.android.settings", "com.milink.service").forEach { targetPackage ->
-            ctx.sendBroadcast(Intent(OppoPodsAction.ACTION_PODS_ANC_CHANGED).apply {
+            ctx.sendBroadcast(Intent(MoondropAction.ACTION_PODS_ANC_CHANGED).apply {
                 putExtra("status", mode)
                 setPackage(targetPackage)
                 addFlags(Intent.FLAG_RECEIVER_FOREGROUND)

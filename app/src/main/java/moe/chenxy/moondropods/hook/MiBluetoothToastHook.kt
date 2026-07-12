@@ -21,7 +21,7 @@ import moe.chenxy.moondropods.utils.SystemApisUtils.cancelAsUser
 import moe.chenxy.moondropods.utils.SystemApisUtils.notifyAsUser
 import moe.chenxy.moondropods.config.ConfigManager
 import moe.chenxy.moondropods.utils.miuiStrongToast.data.BatteryParams
-import moe.chenxy.moondropods.utils.miuiStrongToast.data.OppoPodsAction
+import moe.chenxy.moondropods.utils.miuiStrongToast.data.MoondropAction
 import moe.chenxy.moondropods.R
 import moe.chenxy.moondropods.pods.detectDeviceCapabilities
 
@@ -96,7 +96,7 @@ object MiBluetoothToastHook : HookContext() {
                     PendingIntent.getBroadcast(context, 0, intent, 201326592)
                 )
                 // 循环切换降噪模式，指�?package 确保广播路由�?com.android.bluetooth 进程
-                val ancCycleIntent = Intent(OppoPodsAction.ACTION_CYCLE_ANC)
+                val ancCycleIntent = Intent(MoondropAction.ACTION_CYCLE_ANC)
                 ancCycleIntent.setPackage("com.android.bluetooth")
                 ancCycleIntent.setIdentifier("BTHeadset$address")
                 ancCycleIntent.putExtra("device_name", alias ?: bluetoothDevice.name ?: "")
@@ -261,10 +261,10 @@ object MiBluetoothToastHook : HookContext() {
                             } else if (p1?.action == "chen.action.oppopods.cancelpodsnotification") {
                                 val device = p1.getParcelableExtra("device", BluetoothDevice::class.java) as BluetoothDevice
                                 cancelNotification(device, context)
-                            } else if (p1?.action == OppoPodsAction.ACTION_PODS_ANC_CHANGED) {
+                            } else if (p1?.action == MoondropAction.ACTION_PODS_ANC_CHANGED) {
                                 // 同步耳机实际 ANC 状态到本地缓存，确保下次循环切换时状态准�?
                                 localAncMode = p1.getIntExtra("status", 1)
-                            } else if (p1?.action == OppoPodsAction.ACTION_CYCLE_ANC) {
+                            } else if (p1?.action == MoondropAction.ACTION_CYCLE_ANC) {
                                 val capabilities = detectDeviceCapabilities(
                                     deviceName = p1.getStringExtra("device_name").orEmpty(),
                                     adaptiveOverride = prefs.getInt(
@@ -281,7 +281,7 @@ object MiBluetoothToastHook : HookContext() {
                                 }
                                 val currentIndex = cycle.indexOf(if (localAncMode in 5..8) 2 else localAncMode)
                                 localAncMode = cycle[(currentIndex + 1).floorMod(cycle.size)]
-                                Intent(OppoPodsAction.ACTION_ANC_SELECT).apply {
+                                Intent(MoondropAction.ACTION_ANC_SELECT).apply {
                                     putExtra("status", localAncMode)
                                     addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
                                     p0?.sendBroadcast(this)
@@ -293,9 +293,9 @@ object MiBluetoothToastHook : HookContext() {
                     val intentFilter = IntentFilter("chen.action.oppopods.sendstrongtoast")
                     intentFilter.addAction("chen.action.oppopods.updatepodsnotification")
                     intentFilter.addAction("chen.action.oppopods.cancelpodsnotification")
-                    intentFilter.addAction(OppoPodsAction.ACTION_CYCLE_ANC)
+                    intentFilter.addAction(MoondropAction.ACTION_CYCLE_ANC)
                     // 监听耳机实际 ANC 状态变更广播，保持 localAncMode �?RfcommController 同步
-                    intentFilter.addAction(OppoPodsAction.ACTION_PODS_ANC_CHANGED)
+                    intentFilter.addAction(MoondropAction.ACTION_PODS_ANC_CHANGED)
                     context.registerReceiver(broadcastReceiver, intentFilter,
                         Context.RECEIVER_EXPORTED)
         }

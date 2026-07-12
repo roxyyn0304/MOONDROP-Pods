@@ -13,7 +13,7 @@ import android.os.Handler
 import moe.chenxy.moondropods.BuildConfig
 import moe.chenxy.moondropods.pods.RfcommController
 import moe.chenxy.moondropods.utils.SystemApisUtils.setIconVisibility
-import moe.chenxy.moondropods.utils.miuiStrongToast.data.OppoPodsAction
+import moe.chenxy.moondropods.utils.miuiStrongToast.data.MoondropAction
 
 object HeadsetStateDispatcher : HookContext() {
     private var appRequestReceiverRegistered = false
@@ -59,19 +59,19 @@ object HeadsetStateDispatcher : HookContext() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 if (context == null) return
                 when (intent?.action) {
-                    OppoPodsAction.ACTION_PODS_UI_INIT,
-                    OppoPodsAction.ACTION_REFRESH_STATUS -> {
-                        context.sendBroadcast(Intent(OppoPodsAction.ACTION_MODULE_BLUETOOTH_SERVICE_ALIVE).apply {
+                    MoondropAction.ACTION_PODS_UI_INIT,
+                    MoondropAction.ACTION_REFRESH_STATUS -> {
+                        context.sendBroadcast(Intent(MoondropAction.ACTION_MODULE_BLUETOOTH_SERVICE_ALIVE).apply {
                             setPackage(BuildConfig.APPLICATION_ID)
                             addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
                         })
                     }
-                    OppoPodsAction.ACTION_CONNECT_POD_REQUEST -> {
+                    MoondropAction.ACTION_CONNECT_POD_REQUEST -> {
                         val device = intent.getParcelableExtra("device", BluetoothDevice::class.java) ?: return
                         Log.d("OppoPods", "connect request from app device=${device.name}/${device.address}")
                         RfcommController.connectPod(context, device, prefs, appRequested = true)
                     }
-                    OppoPodsAction.ACTION_DISCONNECT_POD_REQUEST -> {
+                    MoondropAction.ACTION_DISCONNECT_POD_REQUEST -> {
                         val device = intent.getParcelableExtra("device", BluetoothDevice::class.java) ?: return
                         Log.d("OppoPods", "disconnect request from app device=${device.name}/${device.address}")
                         RfcommController.disconnectedPod(context, device)
@@ -79,10 +79,10 @@ object HeadsetStateDispatcher : HookContext() {
                 }
             }
         }, IntentFilter().apply {
-            addAction(OppoPodsAction.ACTION_PODS_UI_INIT)
-            addAction(OppoPodsAction.ACTION_REFRESH_STATUS)
-            addAction(OppoPodsAction.ACTION_CONNECT_POD_REQUEST)
-            addAction(OppoPodsAction.ACTION_DISCONNECT_POD_REQUEST)
+            addAction(MoondropAction.ACTION_PODS_UI_INIT)
+            addAction(MoondropAction.ACTION_REFRESH_STATUS)
+            addAction(MoondropAction.ACTION_CONNECT_POD_REQUEST)
+            addAction(MoondropAction.ACTION_DISCONNECT_POD_REQUEST)
         }, Context.RECEIVER_EXPORTED)
         appRequestReceiverRegistered = true
     }

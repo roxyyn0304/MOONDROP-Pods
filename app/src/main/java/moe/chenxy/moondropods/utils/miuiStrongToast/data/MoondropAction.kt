@@ -1,6 +1,6 @@
 package moe.chenxy.moondropods.utils.miuiStrongToast.data
 
-object OppoPodsAction {
+object MoondropAction {
     const val ACTION_PODS_UI_INIT = "chen.action.oppopods.ui_init"
     const val ACTION_PODS_UI_CLOSED = "chen.action.oppopods.ui_closed"
     const val ACTION_MODULE_BLUETOOTH_SERVICE_ALIVE = "chen.action.oppopods.module_bluetooth_service_alive"
@@ -35,7 +35,7 @@ object OppoPodsAction {
     const val ACTION_RFCOMM_LOG_CLEAR = "chen.action.oppopods.rfcomm_log_clear"
     const val ACTION_RFCOMM_LOG = "chen.action.oppopods.rfcomm_log"
     const val ACTION_RFCOMM_DEBUG_SEND = "chen.action.oppopods.rfcomm_debug_send"
-    // Adaptive模式开关状态变更广播，用于跨进程同步偏好设置（App �?com.android.bluetooth / com.xiaomi.bluetooth�?
+    // Adaptive模式开关状态变更广播，用于跨进程同步偏好设置（App �?com.android.bluetooth / com.xiaomi.bluetooth�?
     const val ACTION_ADAPTIVE_MODE_CHANGED = "chen.action.oppopods.adaptive_mode_changed"
     const val ACTION_CONFIG_CHANGED = "chen.action.oppopods.config_changed"
 }
