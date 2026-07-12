@@ -35,7 +35,7 @@ class HookEntry : XposedModule() {
         hook.module = this
         hook.appClassLoader = classLoader
         hook.packageName = packageName
-        hook.prefs = getRemotePreferences("oppopods_settings")
+        hook.prefs = getRemotePreferences("moondropods_settings")
         Log.d(TAG, "loadHook package=$packageName hook=${hook.javaClass.simpleName}")
         ConfigManager.init(hook.prefs)
         val configListener = SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->

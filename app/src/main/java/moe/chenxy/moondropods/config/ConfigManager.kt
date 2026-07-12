@@ -22,7 +22,7 @@ data class AppConfig(
 
 object ConfigManager {
     private const val TAG = "MoondropPods-Config"
-    const val PREFS_NAME = "oppopods_settings"
+    const val PREFS_NAME = "moondropods_settings"
     const val PREF_KEY_CONFIG_JSON = "config_json"
     const val PREF_KEY_FAKE_DEVICE_ID = "fake_device_id"
     const val PREF_KEY_LOG_LEVEL = "log_level"
