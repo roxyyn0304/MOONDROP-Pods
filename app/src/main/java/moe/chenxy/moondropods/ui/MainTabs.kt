@@ -32,7 +32,6 @@ import io.github.libxposed.service.XposedService
 import moe.chenxy.moondropods.R
 import moe.chenxy.moondropods.config.EarphonePref
 import moe.chenxy.moondropods.config.PodImageResource
-import moe.chenxy.moondropods.pods.GameModeImplementation
 import moe.chenxy.moondropods.pods.NoiseControlMode
 import moe.chenxy.moondropods.pods.WearStatus
 import moe.chenxy.moondropods.ui.dialogs.RestartScope
@@ -104,10 +103,6 @@ internal fun MainTabsScaffold(
     onIslandShowTimingsChange: (Set<Int>) -> Unit,
     appLanguage: MutableState<Int>,
     onAppLanguageChange: (Int) -> Unit,
-    autoGameMode: MutableState<Boolean>,
-    onAutoGameModeChange: (Boolean) -> Unit,
-    gameModeImplementation: MutableState<GameModeImplementation>,
-    onGameModeImplementationChange: (GameModeImplementation) -> Unit,
     notificationClickAction: MutableState<Int>,
     onNotificationClickActionChange: (Int) -> Unit,
     moreClickAction: MutableState<Int>,
@@ -247,10 +242,6 @@ internal fun MainTabsScaffold(
                         onIslandShowTimingsChange = onIslandShowTimingsChange,
                         appLanguage = appLanguage,
                         onAppLanguageChange = onAppLanguageChange,
-                        autoGameMode = autoGameMode,
-                        onAutoGameModeChange = onAutoGameModeChange,
-                        gameModeImplementation = gameModeImplementation,
-                        onGameModeImplementationChange = onGameModeImplementationChange,
                         notificationClickAction = notificationClickAction,
                         onNotificationClickActionChange = onNotificationClickActionChange,
                         moreClickAction = moreClickAction,
@@ -451,10 +442,6 @@ private fun SettingsTabPage(
     onIslandShowTimingsChange: (Set<Int>) -> Unit,
     appLanguage: MutableState<Int>,
     onAppLanguageChange: (Int) -> Unit,
-    autoGameMode: MutableState<Boolean>,
-    onAutoGameModeChange: (Boolean) -> Unit,
-    gameModeImplementation: MutableState<GameModeImplementation>,
-    onGameModeImplementationChange: (GameModeImplementation) -> Unit,
     notificationClickAction: MutableState<Int>,
     onNotificationClickActionChange: (Int) -> Unit,
     moreClickAction: MutableState<Int>,
@@ -496,10 +483,6 @@ private fun SettingsTabPage(
             onIslandShowTimingsChange = onIslandShowTimingsChange,
             appLanguage = appLanguage,
             onAppLanguageChange = onAppLanguageChange,
-            autoGameMode = autoGameMode,
-            onAutoGameModeChange = onAutoGameModeChange,
-            gameModeImplementation = gameModeImplementation,
-            onGameModeImplementationChange = onGameModeImplementationChange,
             notificationClickAction = notificationClickAction,
             onNotificationClickActionChange = onNotificationClickActionChange,
             moreClickAction = moreClickAction,

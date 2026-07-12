@@ -7,11 +7,6 @@
     <string name="module">Module</string>
     <string name="earphones">Earphones</string>
     <string name="based_on">Based on</string>
-    <string name="game_mode">Game Mode</string>
-    <string name="game_mode_summary">Low latency audio mode</string>
-    <string name="enable_game_mode">Enable Game Mode</string>
-    <string name="disable_game_mode">Disable Game Mode</string>
-    <string name="auto_game_mode">Auto-enable game mode on connect</string>
     <string name="spatial_audio">Spatial Audio</string>
     <string name="spatial_sound">Spatial Sound</string>
     <string name="dual_device_connection">Dual-device connection</string>
@@ -25,9 +20,6 @@
     <string name="eq_preset_vocal">Vocal</string>
     <string name="eq_preset_bass">Bass</string>
     <string name="eq_preset_dynaudio">Dynaudio Tuned</string>
-    <string name="game_mode_implementation">Game mode implementation</string>
-    <string name="game_mode_implementation_standard">Standard</string>
-    <string name="game_mode_implementation_compatible">Compatible</string>
     <string name="notification_click_action">Notification tap behavior</string>
     <string name="notification_click_action_summary">Choose where tapping the headset notification opens</string>
     <string name="more_click_action">\"More\" button behavior</string>

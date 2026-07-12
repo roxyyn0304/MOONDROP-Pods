@@ -48,7 +48,6 @@ import moe.chenxy.moondropods.R
 import moe.chenxy.moondropods.config.ConfigManager
 import moe.chenxy.moondropods.config.PodImagePrefs
 import moe.chenxy.moondropods.config.PodImageResource
-import moe.chenxy.moondropods.pods.GameModeImplementation
 import moe.chenxy.moondropods.pods.NoiseControlMode
 import moe.chenxy.moondropods.pods.WearState
 import moe.chenxy.moondropods.pods.WearStatus
@@ -137,17 +136,8 @@ fun MainUI(
         null
     }
 
-    // Auto game mode preference (persisted)
     val prefs = remember { context.getSharedPreferences(ConfigManager.PREFS_NAME, Context.MODE_PRIVATE) }
     val appConfig = remember { ConfigManager.refreshFromPrefs(prefs) }
-    val autoGameMode = remember { mutableStateOf(prefs.getBoolean("auto_game_mode", false)) }
-    val gameModeImplementation = remember {
-        mutableStateOf(
-            GameModeImplementation.fromPreference(
-                prefs.getString(GameModeImplementation.PREF_KEY, null)
-            )
-        )
-    }
     val notificationClickAction = remember { mutableStateOf(appConfig.notificationClickAction) }
     val moreClickAction = remember { mutableStateOf(appConfig.moreClickAction) }
     val desktopIconHidden = remember { mutableStateOf(isLauncherIconHidden(context)) }
@@ -602,30 +592,6 @@ fun MainUI(
                 onAppLanguageChange = {
                     appLanguage.value = it
                     onAppLanguageChange(it)
-                },
-                autoGameMode = autoGameMode,
-                onAutoGameModeChange = {
-                    autoGameMode.value = it
-                    prefs.edit().putBoolean("auto_game_mode", it).apply()
-                    Intent(MoondropAction.ACTION_AUTO_GAME_MODE_CHANGED).apply {
-                        setPackage("com.android.bluetooth")
-                        putExtra("enabled", it)
-                        addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
-                        context.sendBroadcast(this)
-                    }
-                },
-                gameModeImplementation = gameModeImplementation,
-                onGameModeImplementationChange = {
-                    gameModeImplementation.value = it
-                    prefs.edit()
-                        .putString(GameModeImplementation.PREF_KEY, it.preferenceValue)
-                        .apply()
-                    Intent(MoondropAction.ACTION_GAME_MODE_IMPLEMENTATION_CHANGED).apply {
-                        setPackage("com.android.bluetooth")
-                        putExtra(GameModeImplementation.PREF_KEY, it.preferenceValue)
-                        addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
-                        context.sendBroadcast(this)
-                    }
                 },
                 notificationClickAction = notificationClickAction,
                 onNotificationClickActionChange = {

@@ -14,7 +14,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import moe.chenxy.moondropods.R
 import moe.chenxy.moondropods.config.ConfigManager
-import moe.chenxy.moondropods.pods.GameModeImplementation
 import moe.chenxy.moondropods.ui.AppLocale
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Card
@@ -38,10 +37,6 @@ fun SettingsPage(
     onIslandShowTimingsChange: (Set<Int>) -> Unit = {},
     appLanguage: MutableState<Int> = mutableStateOf(AppLocale.SYSTEM),
     onAppLanguageChange: (Int) -> Unit = {},
-    autoGameMode: MutableState<Boolean> = mutableStateOf(false),
-    onAutoGameModeChange: (Boolean) -> Unit = {},
-    gameModeImplementation: MutableState<GameModeImplementation> = mutableStateOf(GameModeImplementation.STANDARD),
-    onGameModeImplementationChange: (GameModeImplementation) -> Unit = {},
     notificationClickAction: MutableState<Int> = mutableStateOf(ConfigManager.NOTIFICATION_CLICK_MODULE_POPUP),
     onNotificationClickActionChange: (Int) -> Unit = {},
     moreClickAction: MutableState<Int> = mutableStateOf(ConfigManager.MORE_CLICK_MODULE),
@@ -115,10 +110,6 @@ fun SettingsPage(
         stringResource(R.string.click_action_heytap),
         stringResource(R.string.click_action_system_settings),
         stringResource(R.string.click_action_module),
-    )
-    val gameModeImplementationOptions = listOf(
-        stringResource(R.string.game_mode_implementation_standard),
-        stringResource(R.string.game_mode_implementation_compatible),
     )
     val adaptiveCapabilityText = capabilityOverrideLabel(adaptiveCapabilityOverride.value)
     val spatialAudioCapabilityText = capabilityOverrideLabel(spatialAudioCapabilityOverride.value)
@@ -197,19 +188,6 @@ fun SettingsPage(
                         collapseOnSelection = false,
                     )
                 }
-                SwitchPreference(
-                    title = stringResource(R.string.auto_game_mode),
-                    checked = autoGameMode.value,
-                    onCheckedChange = { onAutoGameModeChange(it) }
-                )
-                OverlayDropdownPreference(
-                    title = stringResource(R.string.game_mode_implementation),
-                    items = gameModeImplementationOptions,
-                    selectedIndex = GameModeImplementation.selectedIndexOf(gameModeImplementation.value),
-                    onSelectedIndexChange = {
-                        onGameModeImplementationChange(GameModeImplementation.fromSelectedIndex(it))
-                    }
-                )
                 OverlayDropdownPreference(
                     title = stringResource(R.string.notification_click_action),
                     summary = stringResource(R.string.notification_click_action_summary),
