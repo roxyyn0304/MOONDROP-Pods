@@ -35,35 +35,25 @@ fun AboutPage(
         item {
             Card {
                 BasicComponent(
-                    title = "MoondropPods-Enhanced",
-                    summary = "https://github.com/1812z/MOONDROP-Pods",
+                    title = "MOONDROP-Pods",
+                    summary = "https://github.com/roxyyn0304/MOONDROP-Pods",
                     onClick = {
                         Intent(Intent.ACTION_VIEW).apply {
-                            this.data = Uri.parse("https://github.com/1812z/MOONDROP-Pods")
-                            context.startActivity(this)
-                        }
-                    }
-                )
-                BasicComponent(
-                    title = "MoondropPods",
-                    summary = "https://github.com/Leaf-lsgtky/MOONDROP-Pods",
-                    onClick = {
-                        Intent(Intent.ACTION_VIEW).apply {
-                            this.data = Uri.parse("https://github.com/Leaf-lsgtky/MOONDROP-Pods")
+                            this.data = Uri.parse("https://github.com/roxyyn0304/MOONDROP-Pods")
                             context.startActivity(this)
                         }
                     }
                 )
                 BasicComponent(
                     title = stringResource(R.string.based_on),
-                    summary = "HyperPods by Art_Chen"
+                    summary = "OppoPods by 1812z"
                 )
                 BasicComponent(
-                    title = "Github",
-                    summary = "https://github.com/Art-Chen/HyperPods",
+                    title = "Original OppoPods",
+                    summary = "https://github.com/1812z/OppoPods",
                     onClick = {
                         Intent(Intent.ACTION_VIEW).apply {
-                            this.data = Uri.parse("https://github.com/Art-Chen/HyperPods")
+                            this.data = Uri.parse("https://github.com/1812z/OppoPods")
                             context.startActivity(this)
                         }
                     }

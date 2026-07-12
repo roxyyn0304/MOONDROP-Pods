@@ -53,6 +53,11 @@ fun PodDetailPage(
     boxImagePath: String? = null,
 ) {
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val gainOptions = listOf(
+        stringResource(R.string.gain_high),
+        stringResource(R.string.gain_medium),
+        stringResource(R.string.gain_low),
+    )
 
     if (isLandscape) {
         Row(
@@ -98,6 +103,7 @@ fun PodDetailPage(
                     ancMode = ancMode,
                     onAncModeChange = onAncModeChange,
                     gainLevel = gainLevel,
+                    gainOptions = gainOptions,
                     onGainLevelChange = onGainLevelChange,
                     bottomContentPadding = bottomContentPadding
                 )
@@ -128,6 +134,7 @@ fun PodDetailPage(
             ancMode = ancMode,
             onAncModeChange = onAncModeChange,
             gainLevel = gainLevel,
+            gainOptions = gainOptions,
             onGainLevelChange = onGainLevelChange,
             bottomContentPadding = bottomContentPadding
         )
@@ -149,15 +156,10 @@ private fun LazyListScope.podControlItems(
     ancMode: NoiseControlMode,
     onAncModeChange: (NoiseControlMode) -> Unit,
     gainLevel: Int,
+    gainOptions: List<String>,
     onGainLevelChange: (Int) -> Unit,
     bottomContentPadding: Dp
 ) {
-    val gainOptions = listOf(
-        stringResource(R.string.gain_high),
-        stringResource(R.string.gain_medium),
-        stringResource(R.string.gain_low),
-    )
-
     item {
         Card(
             modifier = Modifier.padding(horizontal = 12.dp)

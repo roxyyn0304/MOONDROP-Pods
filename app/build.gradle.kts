@@ -71,12 +71,12 @@ android {
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(JavaVersion.VERSION_22.majorVersion)
+        languageVersion = JavaLanguageVersion.of(JavaVersion.VERSION_17.majorVersion)
     }
 }
 
 kotlin {
-    jvmToolchain(JavaVersion.VERSION_22.majorVersion.toInt())
+    jvmToolchain(JavaVersion.VERSION_17.majorVersion.toInt())
 }
 
 configurations.configureEach {

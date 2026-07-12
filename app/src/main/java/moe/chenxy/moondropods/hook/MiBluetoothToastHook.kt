@@ -60,16 +60,16 @@ object MiBluetoothToastHook : HookContext() {
 
                 val caseBattStr = if (batteryParams.case != null && batteryParams.case!!.isConnected)
                     "${context.resources.getString(miheadset_notification_Box)}${batteryParams.case!!.battery}%" +
-                            "${if (batteryParams.case!!.isCharging) "�?" else " "}\n"
+                            "${if (batteryParams.case!!.isCharging) "⚡ " else " "}\n"
                 else ""
                 val leftEar = if (batteryParams.left != null && batteryParams.left!!.isConnected)
                     "${context.resources.getString(miheadset_notification_LeftEar)}${batteryParams.left!!.battery}%" +
-                        (if (batteryParams.left!!.isCharging) "�? else "")
+                        (if (batteryParams.left!!.isCharging) "⚡" else "")
                 else ""
                 val leftToRight = if (batteryParams.left?.isConnected == true && batteryParams.right?.isConnected == true) " " else ""
                 val rightEar = if (batteryParams.right != null && batteryParams.right!!.isConnected)
                     "$leftToRight${context.resources.getString(miheadset_notification_RightEar)}${batteryParams.right!!.battery}%" +
-                        (if (batteryParams.right!!.isCharging) "�?" else " ")
+                        (if (batteryParams.right!!.isCharging) "⚡ " else " ")
                 else ""
 
                 val contentText: String = caseBattStr + leftEar + rightEar
