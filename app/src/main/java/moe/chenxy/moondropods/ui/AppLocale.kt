@@ -1,4 +1,4 @@
-package moe.chenxy.oppopods.ui
+package moe.chenxy.moondropods.ui
 
 import android.app.Activity
 import android.content.Context

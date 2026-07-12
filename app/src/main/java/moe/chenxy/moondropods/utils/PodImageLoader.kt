@@ -1,16 +1,16 @@
-package moe.chenxy.oppopods.utils
+package moe.chenxy.moondropods.utils
 
 import android.content.Context
 import android.content.SharedPreferences
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import moe.chenxy.oppopods.R
-import moe.chenxy.oppopods.config.PodImagePrefs
-import moe.chenxy.oppopods.config.PodImageResource
-import moe.chenxy.oppopods.config.imageUri
+import moe.chenxy.moondropods.R
+import moe.chenxy.moondropods.config.PodImagePrefs
+import moe.chenxy.moondropods.config.PodImageResource
+import moe.chenxy.moondropods.config.imageUri
 
 object PodImageLoader {
-    private const val MODULE_PACKAGE = "moe.chenxy.oppopods"
+    private const val MODULE_PACKAGE = "moe.chenxy.moondropods"
 
     fun loadBitmap(
         context: Context,

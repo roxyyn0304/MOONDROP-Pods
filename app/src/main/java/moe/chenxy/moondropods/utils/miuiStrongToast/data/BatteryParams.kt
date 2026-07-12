@@ -1,4 +1,4 @@
-package moe.chenxy.oppopods.utils.miuiStrongToast.data
+package moe.chenxy.moondropods.utils.miuiStrongToast.data
 import android.annotation.SuppressLint
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize

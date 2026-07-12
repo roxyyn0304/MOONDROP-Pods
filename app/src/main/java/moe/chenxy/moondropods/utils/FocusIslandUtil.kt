@@ -1,4 +1,4 @@
-package moe.chenxy.oppopods.utils
+package moe.chenxy.moondropods.utils
 
 import android.annotation.SuppressLint
 import android.app.Notification
@@ -10,8 +10,8 @@ import android.graphics.drawable.Icon
 import android.os.Handler
 import android.os.Looper
 import com.xzakota.hyper.notification.focus.FocusNotification
-import moe.chenxy.oppopods.hook.Log
-import moe.chenxy.oppopods.utils.miuiStrongToast.data.BatteryParams
+import moe.chenxy.moondropods.hook.Log
+import moe.chenxy.moondropods.utils.miuiStrongToast.data.BatteryParams
 
 @SuppressLint("WrongConstant")
 object FocusIslandUtil {
@@ -46,7 +46,7 @@ object FocusIslandUtil {
                 return false
             }
 
-            // 使用 createWithBitmap 直接嵌入图片数据，SystemUI 无需再访问模块资源
+            // 使用 createWithBitmap 直接嵌入图片数据，SystemUI 无需再访问模块资�?
             val leftIcon = Icon.createWithBitmap(leftBitmap)
             val rightIcon = Icon.createWithBitmap(rightBitmap)
 

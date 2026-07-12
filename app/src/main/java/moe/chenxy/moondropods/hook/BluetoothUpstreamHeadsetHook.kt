@@ -1,4 +1,4 @@
-package moe.chenxy.oppopods.hook
+package moe.chenxy.moondropods.hook
 
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
@@ -12,12 +12,12 @@ import android.os.Looper
 import android.os.Bundle
 import android.os.Parcel
 import java.lang.reflect.Method
-import moe.chenxy.oppopods.BuildConfig
-import moe.chenxy.oppopods.config.ConfigManager
-import moe.chenxy.oppopods.pods.RfcommController
-import moe.chenxy.oppopods.utils.miuiStrongToast.data.BatteryParams
-import moe.chenxy.oppopods.utils.miuiStrongToast.data.OppoPodsAction
-import moe.chenxy.oppopods.utils.miuiStrongToast.data.PodParams
+import moe.chenxy.moondropods.BuildConfig
+import moe.chenxy.moondropods.config.ConfigManager
+import moe.chenxy.moondropods.pods.RfcommController
+import moe.chenxy.moondropods.utils.miuiStrongToast.data.BatteryParams
+import moe.chenxy.moondropods.utils.miuiStrongToast.data.OppoPodsAction
+import moe.chenxy.moondropods.utils.miuiStrongToast.data.PodParams
 import org.json.JSONObject
 
 @SuppressLint("MissingPermission")

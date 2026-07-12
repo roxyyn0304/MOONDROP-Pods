@@ -1,4 +1,4 @@
-package moe.chenxy.oppopods.ui
+package moe.chenxy.moondropods.ui
 
 import android.annotation.SuppressLint
 import android.app.Activity
@@ -43,23 +43,23 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberDecoratedNavEntries
 import androidx.navigation3.ui.NavDisplay
-import moe.chenxy.oppopods.OppoPodsApp
-import moe.chenxy.oppopods.R
-import moe.chenxy.oppopods.config.ConfigManager
-import moe.chenxy.oppopods.config.PodImagePrefs
-import moe.chenxy.oppopods.config.PodImageResource
-import moe.chenxy.oppopods.pods.GameModeImplementation
-import moe.chenxy.oppopods.pods.NoiseControlMode
-import moe.chenxy.oppopods.pods.WearState
-import moe.chenxy.oppopods.pods.WearStatus
-import moe.chenxy.oppopods.pods.detectDeviceCapabilities
-import moe.chenxy.oppopods.ui.pages.AboutPage
-import moe.chenxy.oppopods.ui.pages.DeviceCapabilitiesPage
-import moe.chenxy.oppopods.ui.pages.RfcommDebugPage
-import moe.chenxy.oppopods.ui.pages.ThemeSettingsPage
-import moe.chenxy.oppopods.utils.RootManager
-import moe.chenxy.oppopods.utils.miuiStrongToast.data.BatteryParams
-import moe.chenxy.oppopods.utils.miuiStrongToast.data.OppoPodsAction
+import moe.chenxy.moondropods.OppoPodsApp
+import moe.chenxy.moondropods.R
+import moe.chenxy.moondropods.config.ConfigManager
+import moe.chenxy.moondropods.config.PodImagePrefs
+import moe.chenxy.moondropods.config.PodImageResource
+import moe.chenxy.moondropods.pods.GameModeImplementation
+import moe.chenxy.moondropods.pods.NoiseControlMode
+import moe.chenxy.moondropods.pods.WearState
+import moe.chenxy.moondropods.pods.WearStatus
+import moe.chenxy.moondropods.pods.detectDeviceCapabilities
+import moe.chenxy.moondropods.ui.pages.AboutPage
+import moe.chenxy.moondropods.ui.pages.DeviceCapabilitiesPage
+import moe.chenxy.moondropods.ui.pages.RfcommDebugPage
+import moe.chenxy.moondropods.ui.pages.ThemeSettingsPage
+import moe.chenxy.moondropods.utils.RootManager
+import moe.chenxy.moondropods.utils.miuiStrongToast.data.BatteryParams
+import moe.chenxy.moondropods.utils.miuiStrongToast.data.OppoPodsAction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -984,13 +984,13 @@ private fun sendBluetoothModuleBroadcast(context: Context, action: String) {
 }
 
 private fun isLauncherIconHidden(context: Context): Boolean {
-    val component = ComponentName(context, "moe.chenxy.oppopods.LauncherActivity")
+    val component = ComponentName(context, "moe.chenxy.moondropods.LauncherActivity")
     val state = context.packageManager.getComponentEnabledSetting(component)
     return state == PackageManager.COMPONENT_ENABLED_STATE_DISABLED
 }
 
 private fun setLauncherIconHidden(context: Context, hidden: Boolean) {
-    val component = ComponentName(context, "moe.chenxy.oppopods.LauncherActivity")
+    val component = ComponentName(context, "moe.chenxy.moondropods.LauncherActivity")
     val state = if (hidden) {
         PackageManager.COMPONENT_ENABLED_STATE_DISABLED
     } else {

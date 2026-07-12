@@ -1,4 +1,4 @@
-package moe.chenxy.oppopods.utils.miuiStrongToast
+package moe.chenxy.moondropods.utils.miuiStrongToast
 
 import StringToastBundle
 import android.annotation.SuppressLint
@@ -12,15 +12,15 @@ import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
 import kotlinx.serialization.json.Json
-import moe.chenxy.oppopods.BuildConfig
-import moe.chenxy.oppopods.hook.Log
-import moe.chenxy.oppopods.utils.SystemApisUtils.isHyperOS
-import moe.chenxy.oppopods.utils.miuiStrongToast.data.BatteryParams
-import moe.chenxy.oppopods.utils.miuiStrongToast.data.IconParams
-import moe.chenxy.oppopods.utils.miuiStrongToast.data.Left
-import moe.chenxy.oppopods.utils.miuiStrongToast.data.Right
-import moe.chenxy.oppopods.utils.miuiStrongToast.data.StringToastBean
-import moe.chenxy.oppopods.utils.miuiStrongToast.data.TextParams
+import moe.chenxy.moondropods.BuildConfig
+import moe.chenxy.moondropods.hook.Log
+import moe.chenxy.moondropods.utils.SystemApisUtils.isHyperOS
+import moe.chenxy.moondropods.utils.miuiStrongToast.data.BatteryParams
+import moe.chenxy.moondropods.utils.miuiStrongToast.data.IconParams
+import moe.chenxy.moondropods.utils.miuiStrongToast.data.Left
+import moe.chenxy.moondropods.utils.miuiStrongToast.data.Right
+import moe.chenxy.moondropods.utils.miuiStrongToast.data.StringToastBean
+import moe.chenxy.moondropods.utils.miuiStrongToast.data.TextParams
 
 @SuppressLint("WrongConstant")
 object MiuiStrongToastUtil {

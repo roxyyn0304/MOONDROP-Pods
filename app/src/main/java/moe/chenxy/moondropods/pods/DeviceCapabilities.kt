@@ -1,6 +1,6 @@
-package moe.chenxy.oppopods.pods
+package moe.chenxy.moondropods.pods
 
-import moe.chenxy.oppopods.config.ConfigManager
+import moe.chenxy.moondropods.config.ConfigManager
 
 private val ADAPTIVE_SUPPORTED_DEVICES = arrayOf(
     "OPPO Enco Free4",

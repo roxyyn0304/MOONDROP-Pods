@@ -1,4 +1,4 @@
-package moe.chenxy.oppopods.ui.pages
+package moe.chenxy.moondropods.ui.pages
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -40,7 +40,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import moe.chenxy.oppopods.utils.miuiStrongToast.data.OppoPodsAction
+import moe.chenxy.moondropods.utils.miuiStrongToast.data.OppoPodsAction
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Text
@@ -143,7 +143,7 @@ fun RfcommDebugPage(
                 modifier = Modifier.weight(1f),
             )
             TextButton(
-                text = "发送",
+                text = "发�?,
                 onClick = {
                     context.sendRfcommDebugBroadcast(OppoPodsAction.ACTION_RFCOMM_DEBUG_SEND) {
                         putExtra("hex", hexInput)
@@ -177,7 +177,7 @@ private fun RfcommLogCard(entry: RfcommDebugLogEntry) {
         onClick = {
             val text = "${entry.time} ${entry.level}/${entry.tag} ${entry.message}"
             clipboard.setText(AnnotatedString(text))
-            Toast.makeText(context, "已复制日志", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "已复制日�?, Toast.LENGTH_SHORT).show()
         }
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {

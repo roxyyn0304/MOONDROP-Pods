@@ -1,4 +1,4 @@
-package moe.chenxy.oppopods.utils.miuiStrongToast.data
+package moe.chenxy.moondropods.utils.miuiStrongToast.data
 
 object OppoPodsPrefsKey {
     const val EAR_DETECTION = "ear_detection"

@@ -1,9 +1,9 @@
-package moe.chenxy.oppopods.pods
+package moe.chenxy.moondropods.pods
 
 import android.content.Context
 import android.content.Intent
-import moe.chenxy.oppopods.BuildConfig
-import moe.chenxy.oppopods.utils.miuiStrongToast.data.OppoPodsAction
+import moe.chenxy.moondropods.BuildConfig
+import moe.chenxy.moondropods.utils.miuiStrongToast.data.OppoPodsAction
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale

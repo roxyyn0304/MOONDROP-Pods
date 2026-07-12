@@ -1,4 +1,4 @@
-package moe.chenxy.oppopods.ui.components
+package moe.chenxy.moondropods.ui.components
 
 import android.content.res.Configuration
 import android.graphics.drawable.BitmapDrawable
@@ -32,11 +32,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import moe.chenxy.oppopods.R
-import moe.chenxy.oppopods.pods.WearState
-import moe.chenxy.oppopods.pods.WearStatus
-import moe.chenxy.oppopods.utils.miuiStrongToast.data.BatteryParams
-import moe.chenxy.oppopods.utils.miuiStrongToast.data.PodParams
+import moe.chenxy.moondropods.R
+import moe.chenxy.moondropods.pods.WearState
+import moe.chenxy.moondropods.pods.WearStatus
+import moe.chenxy.moondropods.utils.miuiStrongToast.data.BatteryParams
+import moe.chenxy.moondropods.utils.miuiStrongToast.data.PodParams
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 
@@ -109,7 +109,7 @@ private fun BatteryColumn(
     val displayLevel = if (isConnected) "$level%" else "-"
     val iconLevel = if (isConnected) level else lastKnownLevel
 
-    // Pad short labels (左/右) to match width of longest label (耳机盒) using ideographic spaces
+    // Pad short labels (�?�? to match width of longest label (耳机�? using ideographic spaces
     val paddedLabel = if (label.length < 3) label.padEnd(3, '\u3000') else label
 
     Box(

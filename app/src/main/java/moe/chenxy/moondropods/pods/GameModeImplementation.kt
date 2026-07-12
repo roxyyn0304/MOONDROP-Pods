@@ -1,4 +1,4 @@
-package moe.chenxy.oppopods.pods
+package moe.chenxy.moondropods.pods
 
 enum class GameModeImplementation(val preferenceValue: String) {
     STANDARD("standard"),

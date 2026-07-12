@@ -1,11 +1,11 @@
-package moe.chenxy.oppopods.hook
+package moe.chenxy.moondropods.hook
 
 import android.content.SharedPreferences
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedModule
 import java.lang.reflect.Constructor
 import java.lang.reflect.Method
-import moe.chenxy.oppopods.config.ConfigManager
+import moe.chenxy.moondropods.config.ConfigManager
 
 abstract class HookContext {
     lateinit var module: XposedModule

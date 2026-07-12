@@ -1,4 +1,4 @@
-package moe.chenxy.oppopods.config
+package moe.chenxy.moondropods.config
 
 import android.content.SharedPreferences
 import android.util.Log

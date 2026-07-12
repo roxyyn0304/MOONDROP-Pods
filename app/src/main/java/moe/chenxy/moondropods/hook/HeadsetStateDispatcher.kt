@@ -1,4 +1,4 @@
-package moe.chenxy.oppopods.hook
+package moe.chenxy.moondropods.hook
 
 import android.annotation.SuppressLint
 import android.app.StatusBarManager
@@ -10,10 +10,10 @@ import android.content.ContextWrapper
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Handler
-import moe.chenxy.oppopods.BuildConfig
-import moe.chenxy.oppopods.pods.RfcommController
-import moe.chenxy.oppopods.utils.SystemApisUtils.setIconVisibility
-import moe.chenxy.oppopods.utils.miuiStrongToast.data.OppoPodsAction
+import moe.chenxy.moondropods.BuildConfig
+import moe.chenxy.moondropods.pods.RfcommController
+import moe.chenxy.moondropods.utils.SystemApisUtils.setIconVisibility
+import moe.chenxy.moondropods.utils.miuiStrongToast.data.OppoPodsAction
 
 object HeadsetStateDispatcher : HookContext() {
     private var appRequestReceiverRegistered = false

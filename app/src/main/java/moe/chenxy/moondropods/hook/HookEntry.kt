@@ -1,12 +1,12 @@
-package moe.chenxy.oppopods.hook
+package moe.chenxy.moondropods.hook
 
 import android.content.SharedPreferences
 import android.os.Build
 import androidx.annotation.RequiresApi
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
-import moe.chenxy.oppopods.config.ConfigManager
-import moe.chenxy.oppopods.hook.milink.MiLinkServiceHook
+import moe.chenxy.moondropods.config.ConfigManager
+import moe.chenxy.moondropods.hook.milink.MiLinkServiceHook
 
 class HookEntry : XposedModule() {
     private val TAG = "OppoPods-HookEntry"

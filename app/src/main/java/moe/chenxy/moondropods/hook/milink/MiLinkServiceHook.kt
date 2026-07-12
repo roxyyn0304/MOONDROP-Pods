@@ -1,4 +1,4 @@
-package moe.chenxy.oppopods.hook.milink
+package moe.chenxy.moondropods.hook.milink
 
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
@@ -6,18 +6,18 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import moe.chenxy.oppopods.BuildConfig
-import moe.chenxy.oppopods.config.ConfigManager
-import moe.chenxy.oppopods.hook.HookContext
-import moe.chenxy.oppopods.hook.Log
-import moe.chenxy.oppopods.hook.callMethod
-import moe.chenxy.oppopods.hook.getObjectField
-import moe.chenxy.oppopods.hook.setObjectField
-import moe.chenxy.oppopods.pods.RfcommController
-import moe.chenxy.oppopods.pods.detectDeviceCapabilities
-import moe.chenxy.oppopods.utils.miuiStrongToast.data.BatteryParams
-import moe.chenxy.oppopods.utils.miuiStrongToast.data.OppoPodsAction
-import moe.chenxy.oppopods.utils.miuiStrongToast.data.PodParams
+import moe.chenxy.moondropods.BuildConfig
+import moe.chenxy.moondropods.config.ConfigManager
+import moe.chenxy.moondropods.hook.HookContext
+import moe.chenxy.moondropods.hook.Log
+import moe.chenxy.moondropods.hook.callMethod
+import moe.chenxy.moondropods.hook.getObjectField
+import moe.chenxy.moondropods.hook.setObjectField
+import moe.chenxy.moondropods.pods.RfcommController
+import moe.chenxy.moondropods.pods.detectDeviceCapabilities
+import moe.chenxy.moondropods.utils.miuiStrongToast.data.BatteryParams
+import moe.chenxy.moondropods.utils.miuiStrongToast.data.OppoPodsAction
+import moe.chenxy.moondropods.utils.miuiStrongToast.data.PodParams
 
 @SuppressLint("MissingPermission")
 object MiLinkServiceHook : HookContext() {
@@ -293,12 +293,12 @@ object MiLinkServiceHook : HookContext() {
         return values.minOrNull() ?: 0
     }
 
-    private fun batteryValue(params: moe.chenxy.oppopods.utils.miuiStrongToast.data.PodParams?): Int {
+    private fun batteryValue(params: moe.chenxy.moondropods.utils.miuiStrongToast.data.PodParams?): Int {
         if (params?.isConnected != true) return -1
         return params.battery.coerceIn(0, 100)
     }
 
-    private fun chargingValue(params: moe.chenxy.oppopods.utils.miuiStrongToast.data.PodParams?): Int {
+    private fun chargingValue(params: moe.chenxy.moondropods.utils.miuiStrongToast.data.PodParams?): Int {
         return if (params?.isConnected == true && params.isCharging) 1 else 0
     }
 

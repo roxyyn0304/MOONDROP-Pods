@@ -1,10 +1,10 @@
-package moe.chenxy.oppopods.ui
+package moe.chenxy.moondropods.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import moe.chenxy.oppopods.R
-import moe.chenxy.oppopods.ui.components.AppIcons
+import moe.chenxy.moondropods.R
+import moe.chenxy.moondropods.ui.components.AppIcons
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Settings
 

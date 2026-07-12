@@ -1,4 +1,4 @@
-package moe.chenxy.oppopods.ui.pages
+package moe.chenxy.moondropods.ui.pages
 
 import android.bluetooth.BluetoothDevice
 import androidx.compose.animation.AnimatedContent
@@ -10,10 +10,10 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
-import moe.chenxy.oppopods.R
-import moe.chenxy.oppopods.pods.NoiseControlMode
-import moe.chenxy.oppopods.pods.WearStatus
-import moe.chenxy.oppopods.utils.miuiStrongToast.data.BatteryParams
+import moe.chenxy.moondropods.R
+import moe.chenxy.moondropods.pods.NoiseControlMode
+import moe.chenxy.moondropods.pods.WearStatus
+import moe.chenxy.moondropods.utils.miuiStrongToast.data.BatteryParams
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 
 @Composable

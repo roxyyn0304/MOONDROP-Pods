@@ -1,4 +1,4 @@
-package moe.chenxy.oppopods.ui.pages
+package moe.chenxy.moondropods.ui.pages
 
 import android.content.res.Configuration
 import android.graphics.BitmapFactory
@@ -28,16 +28,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
-import moe.chenxy.oppopods.R
-import moe.chenxy.oppopods.config.ConfigManager
-import moe.chenxy.oppopods.pods.NoiseControlMode
-import moe.chenxy.oppopods.pods.WearStatus
-import moe.chenxy.oppopods.ui.components.AncSwitch
-import moe.chenxy.oppopods.ui.components.PodStatus
-import moe.chenxy.oppopods.utils.miuiStrongToast.data.BatteryParams
+import moe.chenxy.moondropods.R
+import moe.chenxy.moondropods.config.ConfigManager
+import moe.chenxy.moondropods.pods.NoiseControlMode
+import moe.chenxy.moondropods.pods.WearStatus
+import moe.chenxy.moondropods.ui.components.AncSwitch
+import moe.chenxy.moondropods.ui.components.PodStatus
+import moe.chenxy.moondropods.utils.miuiStrongToast.data.BatteryParams
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Text
-import moe.chenxy.oppopods.pods.EqPreset
+import moe.chenxy.moondropods.pods.EqPreset
 import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference
 

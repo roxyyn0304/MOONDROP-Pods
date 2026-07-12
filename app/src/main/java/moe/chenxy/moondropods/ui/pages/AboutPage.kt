@@ -1,4 +1,4 @@
-package moe.chenxy.oppopods.ui.pages
+package moe.chenxy.moondropods.ui.pages
 
 import android.content.Intent
 import android.net.Uri
@@ -11,7 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import moe.chenxy.oppopods.R
+import moe.chenxy.moondropods.R
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Card
 

@@ -1,4 +1,4 @@
-package moe.chenxy.oppopods.ui.pages
+package moe.chenxy.moondropods.ui.pages
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -46,7 +46,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import androidx.core.content.ContextCompat
-import moe.chenxy.oppopods.R
+import moe.chenxy.moondropods.R
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon

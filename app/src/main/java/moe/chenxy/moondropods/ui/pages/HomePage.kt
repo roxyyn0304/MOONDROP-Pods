@@ -1,4 +1,4 @@
-package moe.chenxy.oppopods.ui.pages
+package moe.chenxy.moondropods.ui.pages
 
 import android.content.Context
 import android.os.Build
@@ -31,9 +31,9 @@ import io.github.libxposed.service.XposedService
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import moe.chenxy.oppopods.BuildConfig
-import moe.chenxy.oppopods.R
-import moe.chenxy.oppopods.ui.components.AppIcons
+import moe.chenxy.moondropods.BuildConfig
+import moe.chenxy.moondropods.R
+import moe.chenxy.moondropods.ui.components.AppIcons
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Icon
@@ -107,7 +107,7 @@ private fun StatusGrid(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 StatusCard(active = active, inactiveSummary = inactiveSummary, bluetoothServiceResponsive = bluetoothServiceResponsive, modifier = Modifier.weight(1f).height(112.dp))
-                StatCard(title = "蓝牙状态", value = if (bluetoothEnabled) "已开启" else "未开启", modifier = Modifier.weight(1f).height(112.dp), onClick = onBluetoothStatusClick)
+                StatCard(title = "蓝牙状�?, value = if (bluetoothEnabled) "已开�? else "未开�?, modifier = Modifier.weight(1f).height(112.dp), onClick = onBluetoothStatusClick)
                 StatCard(title = "配对蓝牙", value = bondedDeviceCount.toString(), modifier = Modifier.weight(1f).height(112.dp), onClick = onPairedBluetoothClick)
             }
         } else {
@@ -121,7 +121,7 @@ private fun StatusGrid(
                     modifier = Modifier.weight(1f).aspectRatio(1f),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    StatCard(title = "蓝牙状态", value = if (bluetoothEnabled) "已开启" else "未开启", modifier = Modifier.weight(1f), onClick = onBluetoothStatusClick)
+                    StatCard(title = "蓝牙状�?, value = if (bluetoothEnabled) "已开�? else "未开�?, modifier = Modifier.weight(1f), onClick = onBluetoothStatusClick)
                     StatCard(title = "配对蓝牙", value = bondedDeviceCount.toString(), modifier = Modifier.weight(1f), onClick = onPairedBluetoothClick)
                 }
             }
@@ -163,9 +163,9 @@ private fun StatusCard(active: Boolean, inactiveSummary: String, bluetoothServic
             Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
                 Text(
                     text = when {
-                        !active -> "LSPosed 未激活"
+                        !active -> "LSPosed 未激�?
                         serviceTimeout -> "模块服务超时"
-                        else -> "模块已激活"
+                        else -> "模块已激�?
                     },
                     fontSize = 20.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -174,8 +174,8 @@ private fun StatusCard(active: Boolean, inactiveSummary: String, bluetoothServic
                 Text(
                     text = when {
                         !active -> inactiveSummary
-                        serviceTimeout -> "模块服务未响应"
-                        else -> "模块服务已连接"
+                        serviceTimeout -> "模块服务未响�?
+                        else -> "模块服务已连�?
                     },
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,

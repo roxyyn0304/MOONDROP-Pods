@@ -1,4 +1,4 @@
-package moe.chenxy.oppopods.ui.dialogs
+package moe.chenxy.moondropods.ui.dialogs
 
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
@@ -37,10 +37,10 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import moe.chenxy.oppopods.R
-import moe.chenxy.oppopods.config.PodImageResource
-import moe.chenxy.oppopods.utils.MelodyImageCandidate
-import moe.chenxy.oppopods.utils.RootManager
+import moe.chenxy.moondropods.R
+import moe.chenxy.moondropods.config.PodImageResource
+import moe.chenxy.moondropods.utils.MelodyImageCandidate
+import moe.chenxy.moondropods.utils.RootManager
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
 import top.yukonga.miuix.kmp.basic.Text

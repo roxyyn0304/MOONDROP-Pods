@@ -1,4 +1,4 @@
-package moe.chenxy.oppopods.ui.components
+package moe.chenxy.moondropods.ui.components
 
 import android.content.res.Configuration
 import android.graphics.Bitmap
@@ -35,9 +35,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
-import moe.chenxy.oppopods.R
-import moe.chenxy.oppopods.pods.NoiseControlMode
-import moe.chenxy.oppopods.pods.isNoiseCancellation
+import moe.chenxy.moondropods.R
+import moe.chenxy.moondropods.pods.NoiseControlMode
+import moe.chenxy.moondropods.pods.isNoiseCancellation
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TabRowWithContour
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -80,7 +80,7 @@ fun AncSwitch(
                 modifier = Modifier.weight(1f),
                 compact = compact
             )
-            // Adaptive模式按钮：仅当设置中启用Adaptive模式时显示
+            // Adaptive模式按钮：仅当设置中启用Adaptive模式时显�?
             if (adaptiveModeEnabled) {
                 AncButton(
                     offIconRes = R.drawable.ic_adaptive_off,

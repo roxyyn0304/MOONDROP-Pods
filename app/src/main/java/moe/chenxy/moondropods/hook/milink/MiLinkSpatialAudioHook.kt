@@ -1,12 +1,12 @@
-package moe.chenxy.oppopods.hook.milink
+package moe.chenxy.moondropods.hook.milink
 
 import android.bluetooth.BluetoothDevice
 import android.os.Bundle
-import moe.chenxy.oppopods.config.ConfigManager
-import moe.chenxy.oppopods.hook.Log
-import moe.chenxy.oppopods.hook.callMethod
-import moe.chenxy.oppopods.hook.getObjectField
-import moe.chenxy.oppopods.hook.setObjectField
+import moe.chenxy.moondropods.config.ConfigManager
+import moe.chenxy.moondropods.hook.Log
+import moe.chenxy.moondropods.hook.callMethod
+import moe.chenxy.moondropods.hook.getObjectField
+import moe.chenxy.moondropods.hook.setObjectField
 
 internal class MiLinkSpatialAudioHook(private val hook: MiLinkServiceHook) {
     fun hookMxBluetoothRuntime(classes: List<String>) {

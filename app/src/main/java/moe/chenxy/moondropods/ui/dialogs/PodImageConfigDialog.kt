@@ -1,4 +1,4 @@
-package moe.chenxy.oppopods.ui.dialogs
+package moe.chenxy.moondropods.ui.dialogs
 
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -32,9 +32,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import moe.chenxy.oppopods.R
-import moe.chenxy.oppopods.config.EarphonePref
-import moe.chenxy.oppopods.config.PodImageResource
+import moe.chenxy.moondropods.R
+import moe.chenxy.moondropods.config.EarphonePref
+import moe.chenxy.moondropods.config.PodImageResource
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton

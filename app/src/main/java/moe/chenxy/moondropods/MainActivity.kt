@@ -1,4 +1,4 @@
-package moe.chenxy.oppopods
+package moe.chenxy.moondropods
 
 import android.content.Context
 import android.graphics.Color
@@ -11,9 +11,9 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import moe.chenxy.oppopods.config.ConfigManager
-import moe.chenxy.oppopods.ui.App
-import moe.chenxy.oppopods.ui.AppLocale
+import moe.chenxy.moondropods.config.ConfigManager
+import moe.chenxy.moondropods.ui.App
+import moe.chenxy.moondropods.ui.AppLocale
 
 class MainActivity : ComponentActivity() {
     override fun attachBaseContext(newBase: Context) {

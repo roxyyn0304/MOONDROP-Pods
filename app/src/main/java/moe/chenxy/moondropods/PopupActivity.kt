@@ -1,4 +1,4 @@
-package moe.chenxy.oppopods
+package moe.chenxy.moondropods
 
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
@@ -34,15 +34,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
-import moe.chenxy.oppopods.pods.NoiseControlMode
-import moe.chenxy.oppopods.pods.detectDeviceCapabilities
-import moe.chenxy.oppopods.config.ConfigManager
-import moe.chenxy.oppopods.ui.AppLocale
-import moe.chenxy.oppopods.ui.AppTheme
-import moe.chenxy.oppopods.ui.components.AncSwitch
-import moe.chenxy.oppopods.ui.components.PodStatus
-import moe.chenxy.oppopods.utils.miuiStrongToast.data.BatteryParams
-import moe.chenxy.oppopods.utils.miuiStrongToast.data.OppoPodsAction
+import moe.chenxy.moondropods.pods.NoiseControlMode
+import moe.chenxy.moondropods.pods.detectDeviceCapabilities
+import moe.chenxy.moondropods.config.ConfigManager
+import moe.chenxy.moondropods.ui.AppLocale
+import moe.chenxy.moondropods.ui.AppTheme
+import moe.chenxy.moondropods.ui.components.AncSwitch
+import moe.chenxy.moondropods.ui.components.PodStatus
+import moe.chenxy.moondropods.utils.miuiStrongToast.data.BatteryParams
+import moe.chenxy.moondropods.utils.miuiStrongToast.data.OppoPodsAction
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Scaffold

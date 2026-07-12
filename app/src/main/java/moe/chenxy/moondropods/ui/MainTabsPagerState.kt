@@ -1,4 +1,4 @@
-package moe.chenxy.oppopods.ui
+package moe.chenxy.moondropods.ui
 
 import androidx.compose.animation.core.EaseInOut
 import androidx.compose.animation.core.tween
