@@ -17,7 +17,7 @@
         android:extractNativeLibs="false"
         android:enableOnBackInvokedCallback="true"
         android:supportsRtl="true"
-        android:theme="@style/Theme.OppoPods">
+        android:theme="@style/Theme.MoondropPods">
 
         <activity-alias
             android:name=".LauncherActivity"
@@ -43,7 +43,7 @@
             </intent-filter>
         </activity>
         <activity android:name=".PopupActivity"
-            android:theme="@style/Theme.OppoPods.Popup"
+            android:theme="@style/Theme.MoondropPods.Popup"
             android:taskAffinity=""
             android:excludeFromRecents="true"
             android:exported="true">
