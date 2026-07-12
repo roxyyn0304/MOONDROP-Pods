@@ -9,7 +9,7 @@ import moe.chenxy.moondropods.config.ConfigManager
 import moe.chenxy.moondropods.hook.milink.MiLinkServiceHook
 
 class HookEntry : XposedModule() {
-    private val TAG = "OppoPods-HookEntry"
+    private val TAG = "MoondropPods-HookEntry"
     private val configListeners = mutableListOf<SharedPreferences.OnSharedPreferenceChangeListener>()
 
     @RequiresApi(Build.VERSION_CODES.Q)

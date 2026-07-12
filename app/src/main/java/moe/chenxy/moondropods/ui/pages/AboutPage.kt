@@ -35,7 +35,7 @@ fun AboutPage(
         item {
             Card {
                 BasicComponent(
-                    title = "OppoPods-Enhanced",
+                    title = "MoondropPods-Enhanced",
                     summary = "https://github.com/1812z/OppoPods",
                     onClick = {
                         Intent(Intent.ACTION_VIEW).apply {
@@ -45,7 +45,7 @@ fun AboutPage(
                     }
                 )
                 BasicComponent(
-                    title = "OppoPods",
+                    title = "MoondropPods",
                     summary = "https://github.com/Leaf-lsgtky/OppoPods",
                     onClick = {
                         Intent(Intent.ACTION_VIEW).apply {

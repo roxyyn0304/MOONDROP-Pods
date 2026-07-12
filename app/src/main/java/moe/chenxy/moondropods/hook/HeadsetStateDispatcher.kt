@@ -24,7 +24,7 @@ object HeadsetStateDispatcher : HookContext() {
                 registerAppRequestReceiver(instance as? Context)
             }
         }.onFailure {
-            Log.w("OppoPods", "AdapterService.onCreate hook skipped", it)
+            Log.w("MoondropPods", "AdapterService.onCreate hook skipped", it)
         }
 
         hookAfter(findMethodByParamCount("com.android.bluetooth.a2dp.A2dpService", "handleConnectionStateChanged", 3)) {
@@ -36,7 +36,7 @@ object HeadsetStateDispatcher : HookContext() {
                 return@hookAfter
             }
             handler.post {
-                Log.d("OppoPods", "A2DP Connection State: $currState, isOppoPod ${isOppoPod(device)}")
+                Log.d("MoondropPods", "A2DP Connection State: $currState, isOppoPod ${isOppoPod(device)}")
                 val context = instance as ContextWrapper
                 registerAppRequestReceiver(context)
                 if (!isOppoPod(device)) return@post
@@ -68,12 +68,12 @@ object HeadsetStateDispatcher : HookContext() {
                     }
                     MoondropAction.ACTION_CONNECT_POD_REQUEST -> {
                         val device = intent.getParcelableExtra("device", BluetoothDevice::class.java) ?: return
-                        Log.d("OppoPods", "connect request from app device=${device.name}/${device.address}")
+                        Log.d("MoondropPods", "connect request from app device=${device.name}/${device.address}")
                         RfcommController.connectPod(context, device, prefs, appRequested = true)
                     }
                     MoondropAction.ACTION_DISCONNECT_POD_REQUEST -> {
                         val device = intent.getParcelableExtra("device", BluetoothDevice::class.java) ?: return
-                        Log.d("OppoPods", "disconnect request from app device=${device.name}/${device.address}")
+                        Log.d("MoondropPods", "disconnect request from app device=${device.name}/${device.address}")
                         RfcommController.disconnectedPod(context, device)
                     }
                 }
