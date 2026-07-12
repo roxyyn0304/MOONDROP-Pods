@@ -135,4 +135,9 @@
     <string name="anc_implementation_summary">Auto follows model detection. Manual switch for ANC behavior compatibility.</string>
     <string name="anc_implementation_standard">Standard</string>
     <string name="anc_implementation_compatible">Compatible</string>
+    <string name="gain_level">Gain</string>
+    <string name="gain_level_summary">Adjust earphone gain level</string>
+    <string name="gain_high">High</string>
+    <string name="gain_medium">Medium</string>
+    <string name="gain_low">Low</string>
 </resources>

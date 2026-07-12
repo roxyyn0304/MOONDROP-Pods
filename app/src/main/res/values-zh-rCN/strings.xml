@@ -136,4 +136,9 @@
     <string name="anc_implementation_summary">自动时跟随型号检测；部分老耳机降噪/关闭指令相反，可手动切换。</string>
     <string name="anc_implementation_standard">标准</string>
     <string name="anc_implementation_compatible">兼容</string>
+    <string name="gain_level">增益</string>
+    <string name="gain_level_summary">调整耳机增益等级</string>
+    <string name="gain_high">高</string>
+    <string name="gain_medium">中</string>
+    <string name="gain_low">低</string>
 </resources>

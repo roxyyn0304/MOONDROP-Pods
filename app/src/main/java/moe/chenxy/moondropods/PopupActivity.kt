@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -35,7 +36,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import moe.chenxy.moondropods.pods.NoiseControlMode
-import moe.chenxy.moondropods.pods.detectDeviceCapabilities
 import moe.chenxy.moondropods.config.ConfigManager
 import moe.chenxy.moondropods.ui.AppLocale
 import moe.chenxy.moondropods.ui.AppTheme
@@ -44,15 +44,12 @@ import moe.chenxy.moondropods.ui.components.PodStatus
 import moe.chenxy.moondropods.utils.miuiStrongToast.data.BatteryParams
 import moe.chenxy.moondropods.utils.miuiStrongToast.data.MoondropAction
 import top.yukonga.miuix.kmp.basic.Card
-import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
-import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.utils.PressFeedbackType
 
 class PopupActivity : ComponentActivity() {
     override fun attachBaseContext(newBase: Context) {
@@ -165,16 +162,9 @@ private fun PopupContent(onMore: () -> Unit, onDone: () -> Unit) {
 
     val batteryParams = remember { mutableStateOf(BatteryParams()) }
     val ancMode = remember { mutableStateOf(NoiseControlMode.OFF) }
-    val gameMode = remember { mutableStateOf(false) }
-    val transparencyVocalEnhancement = remember { mutableStateOf(false) }
+    val gainLevel = remember { mutableIntStateOf(0) }
     val deviceName = remember { mutableStateOf("") }
     val appConfig = remember { ConfigManager.refreshFromPrefs(prefs) }
-    val capabilities = detectDeviceCapabilities(
-        deviceName = deviceName.value,
-        adaptiveOverride = appConfig.adaptiveCapabilityOverride,
-        spatialAudioOverride = appConfig.spatialAudioCapabilityOverride,
-        spatialSoundSwitchOverride = appConfig.spatialSoundSwitchCapabilityOverride,
-    )
 
     val broadcastReceiver = remember {
         object : BroadcastReceiver() {
@@ -205,11 +195,8 @@ private fun PopupContent(onMore: () -> Unit, onDone: () -> Unit) {
                     MoondropAction.ACTION_PODS_DISCONNECTED -> {
                         showDialog.value = false
                     }
-                    MoondropAction.ACTION_PODS_GAME_MODE_CHANGED -> {
-                        gameMode.value = p1.getBooleanExtra("enabled", false)
-                    }
-                    MoondropAction.ACTION_PODS_TRANSPARENCY_VOCAL_ENHANCEMENT_CHANGED -> {
-                        transparencyVocalEnhancement.value = p1.getBooleanExtra("enabled", false)
+                    MoondropAction.ACTION_PODS_GAIN_CHANGED -> {
+                        gainLevel.intValue = p1.getIntExtra("level", 0)
                     }
                 }
             }
@@ -220,10 +207,9 @@ private fun PopupContent(onMore: () -> Unit, onDone: () -> Unit) {
         context.registerReceiver(broadcastReceiver, IntentFilter().apply {
             addAction(MoondropAction.ACTION_PODS_ANC_CHANGED)
             addAction(MoondropAction.ACTION_PODS_BATTERY_CHANGED)
+            addAction(MoondropAction.ACTION_PODS_GAIN_CHANGED)
             addAction(MoondropAction.ACTION_PODS_CONNECTED)
             addAction(MoondropAction.ACTION_PODS_DISCONNECTED)
-            addAction(MoondropAction.ACTION_PODS_GAME_MODE_CHANGED)
-            addAction(MoondropAction.ACTION_PODS_TRANSPARENCY_VOCAL_ENHANCEMENT_CHANGED)
         }, Context.RECEIVER_EXPORTED)
 
         context.sendBroadcast(Intent(MoondropAction.ACTION_PODS_UI_INIT).apply {
@@ -275,20 +261,10 @@ private fun PopupContent(onMore: () -> Unit, onDone: () -> Unit) {
         }
     }
 
-    fun setGameMode(enabled: Boolean) {
-        gameMode.value = enabled
-        Intent(MoondropAction.ACTION_GAME_MODE_SET).apply {
-            putExtra("enabled", enabled)
-            setPackage("com.android.bluetooth")
-            addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
-            context.sendBroadcast(this)
-        }
-    }
-
-    fun setTransparencyVocalEnhancement(enabled: Boolean) {
-        transparencyVocalEnhancement.value = enabled
-        Intent(MoondropAction.ACTION_TRANSPARENCY_VOCAL_ENHANCEMENT_SET).apply {
-            putExtra("enabled", enabled)
+    fun setGainLevel(level: Int) {
+        gainLevel.intValue = level
+        Intent(MoondropAction.ACTION_GAIN_SET).apply {
+            putExtra("level", level)
             setPackage("com.android.bluetooth")
             addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
             context.sendBroadcast(this)
@@ -314,27 +290,21 @@ private fun PopupContent(onMore: () -> Unit, onDone: () -> Unit) {
                 LandscapePopupBody(
                     batteryParams = batteryParams.value,
                     ancMode = ancMode.value,
-                    gameMode = gameMode.value,
-                    transparencyVocalEnhancement = transparencyVocalEnhancement.value,
+                    gainLevel = gainLevel.intValue,
                     onAncModeChange = ::setAncMode,
-                    onGameModeChange = ::setGameMode,
-                    onTransparencyVocalEnhancementChange = ::setTransparencyVocalEnhancement,
+                    onGainLevelChange = ::setGainLevel,
                     onMore = onMore,
                     onDone = { showDialog.value = false },
-                    adaptiveModeEnabled = capabilities.adaptiveSupported
                 )
             } else {
                 PortraitPopupBody(
                     batteryParams = batteryParams.value,
                     ancMode = ancMode.value,
-                    gameMode = gameMode.value,
-                    transparencyVocalEnhancement = transparencyVocalEnhancement.value,
+                    gainLevel = gainLevel.intValue,
                     onAncModeChange = ::setAncMode,
-                    onGameModeChange = ::setGameMode,
-                    onTransparencyVocalEnhancementChange = ::setTransparencyVocalEnhancement,
+                    onGainLevelChange = ::setGainLevel,
                     onMore = onMore,
                     onDone = { showDialog.value = false },
-                    adaptiveModeEnabled = capabilities.adaptiveSupported
                 )
             }
         }
@@ -345,15 +315,17 @@ private fun PopupContent(onMore: () -> Unit, onDone: () -> Unit) {
 private fun PortraitPopupBody(
     batteryParams: BatteryParams,
     ancMode: NoiseControlMode,
-    gameMode: Boolean,
-    transparencyVocalEnhancement: Boolean,
+    gainLevel: Int,
     onAncModeChange: (NoiseControlMode) -> Unit,
-    onGameModeChange: (Boolean) -> Unit,
-    onTransparencyVocalEnhancementChange: (Boolean) -> Unit,
+    onGainLevelChange: (Int) -> Unit,
     onMore: () -> Unit,
     onDone: () -> Unit,
-    adaptiveModeEnabled: Boolean = true
 ) {
+    val gainOptions = listOf(
+        stringResource(R.string.gain_high),
+        stringResource(R.string.gain_medium),
+        stringResource(R.string.gain_low),
+    )
     Column(modifier = Modifier.fillMaxWidth()) {
         Card(modifier = Modifier.fillMaxWidth()) {
             PodStatus(
@@ -366,18 +338,16 @@ private fun PortraitPopupBody(
             AncSwitch(
                 ancStatus = ancMode,
                 onAncModeChange = onAncModeChange,
-                adaptiveModeEnabled = adaptiveModeEnabled,
-                transparencyVocalEnhancement = transparencyVocalEnhancement,
-                onTransparencyVocalEnhancementChange = onTransparencyVocalEnhancementChange
             )
         }
         Spacer(modifier = Modifier.height(12.dp))
         Card(modifier = Modifier.fillMaxWidth()) {
-            SwitchPreference(
-                title = stringResource(R.string.game_mode),
-                summary = stringResource(R.string.game_mode_summary),
-                checked = gameMode,
-                onCheckedChange = onGameModeChange
+            top.yukonga.miuix.kmp.preference.OverlayDropdownPreference(
+                title = stringResource(R.string.gain_level),
+                summary = stringResource(R.string.gain_level_summary),
+                items = gainOptions,
+                selectedIndex = gainLevel.coerceIn(0, gainOptions.lastIndex),
+                onSelectedIndexChange = { onGainLevelChange(it) }
             )
         }
         Spacer(modifier = Modifier.height(16.dp))
@@ -403,15 +373,17 @@ private fun PortraitPopupBody(
 private fun LandscapePopupBody(
     batteryParams: BatteryParams,
     ancMode: NoiseControlMode,
-    gameMode: Boolean,
-    transparencyVocalEnhancement: Boolean,
+    gainLevel: Int,
     onAncModeChange: (NoiseControlMode) -> Unit,
-    onGameModeChange: (Boolean) -> Unit,
-    onTransparencyVocalEnhancementChange: (Boolean) -> Unit,
+    onGainLevelChange: (Int) -> Unit,
     onMore: () -> Unit,
     onDone: () -> Unit,
-    adaptiveModeEnabled: Boolean = true
 ) {
+    val gainOptions = listOf(
+        stringResource(R.string.gain_high),
+        stringResource(R.string.gain_medium),
+        stringResource(R.string.gain_low),
+    )
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -438,9 +410,6 @@ private fun LandscapePopupBody(
                     ancMode,
                     onAncModeChange = onAncModeChange,
                     compact = true,
-                    adaptiveModeEnabled = adaptiveModeEnabled,
-                    transparencyVocalEnhancement = transparencyVocalEnhancement,
-                    onTransparencyVocalEnhancementChange = onTransparencyVocalEnhancementChange
                 )
             }
         }
@@ -450,26 +419,13 @@ private fun LandscapePopupBody(
                 .fillMaxHeight(),
             verticalArrangement = Arrangement.Center
         ) {
-            val gameModeCardColor = if (gameMode) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.surfaceContainer
-            val gameModeTextColor = if (gameMode) Color.White else MiuixTheme.colorScheme.onSurfaceContainer
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.defaultColors(
-                    color = gameModeCardColor,
-                    contentColor = gameModeTextColor
-                ),
-                pressFeedbackType = PressFeedbackType.Sink,
-                showIndication = true,
-                onClick = { onGameModeChange(!gameMode) },
-                onLongPress = {}
-            ) {
-                Text(
-                    text = stringResource(R.string.game_mode),
-                    color = if (gameMode) Color.White else MiuixTheme.colorScheme.onSurface,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 12.dp),
-                    textAlign = TextAlign.Center
+            Card(modifier = Modifier.fillMaxWidth()) {
+                top.yukonga.miuix.kmp.preference.OverlayDropdownPreference(
+                    title = stringResource(R.string.gain_level),
+                    summary = stringResource(R.string.gain_level_summary),
+                    items = gainOptions,
+                    selectedIndex = gainLevel.coerceIn(0, gainOptions.lastIndex),
+                    onSelectedIndexChange = { onGainLevelChange(it) }
                 )
             }
             Spacer(modifier = Modifier.height(6.dp))

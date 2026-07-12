@@ -108,12 +108,8 @@ fun MainUI(
     val batteryParams = remember { mutableStateOf(BatteryParams()) }
     val wearStatus = remember { mutableStateOf(WearStatus()) }
     val ancMode = remember { mutableStateOf(NoiseControlMode.OFF) }
-    /** Smart-mode current auto-applied NC level (LIGHT/MEDIUM/DEEP), or null. */
-    val smartAncLevel = remember { mutableStateOf<NoiseControlMode?>(null) }
     val hookConnected = remember { mutableStateOf(false) }
-    val gameMode = remember { mutableStateOf(false) }
-    val transparencyVocalEnhancement = remember { mutableStateOf(false) }
-    val dualDeviceConnection = remember { mutableStateOf(false) }
+    val gainLevel = remember { mutableIntStateOf(0) }
     val tabs = remember { MainTab.entries.toList() }
     var selectedTab by remember { mutableStateOf(MainTab.Module) }
     var hasAppliedDefaultTab by remember { mutableStateOf(false) }
@@ -159,8 +155,6 @@ fun MainUI(
     val fakeDeviceId = remember { mutableStateOf(appConfig.fakeDeviceId) }
     val islandMode = remember { mutableStateOf(appConfig.islandMode) }
     val islandShowTimings = remember { mutableStateOf(appConfig.islandShowTimings) }
-    val spatialAudioMode = remember { mutableStateOf(prefs.getInt("spatial_audio_mode", ConfigManager.SPATIAL_AUDIO_OFF)) }
-    val eqPreset = remember { mutableStateOf(-1) }
     val earphonePrefs = remember { mutableStateOf(PodImagePrefs.load(prefs)) }
     val adaptiveCapabilityOverride = remember { mutableStateOf(appConfig.adaptiveCapabilityOverride) }
     val spatialAudioCapabilityOverride = remember { mutableStateOf(appConfig.spatialAudioCapabilityOverride) }
@@ -172,9 +166,6 @@ fun MainUI(
     val displayBattery = batteryParams.value
     val displayWearStatus = wearStatus.value
     val displayAnc = ancMode.value
-    val displayGameMode = gameMode.value
-    val displayTransparencyVocalEnhancement = transparencyVocalEnhancement.value
-    val displayDualDeviceConnection = dualDeviceConnection.value
     val displayTitle = mainTitle.value.takeIf { it.isNotBlank() && hookConnected.value } ?: mainTitle.value
     val displayCapabilities = detectDeviceCapabilities(
         deviceName = displayTitle,
@@ -241,11 +232,6 @@ fun MainUI(
                         }
                     }
 
-                    MoondropAction.ACTION_PODS_SMART_ANC_LEVEL_CHANGED -> {
-                        val ord = p1.getIntExtra("ordinal", -1)
-                        smartAncLevel.value = NoiseControlMode.entries.getOrNull(ord)
-                    }
-
                     MoondropAction.ACTION_PODS_BATTERY_CHANGED -> {
                         connectedDeviceAddress = p1.getStringExtra("address") ?: connectedDeviceAddress
                         batteryParams.value =
@@ -261,24 +247,8 @@ fun MainUI(
                         )
                     }
 
-                    MoondropAction.ACTION_PODS_GAME_MODE_CHANGED -> {
-                        gameMode.value = p1.getBooleanExtra("enabled", false)
-                    }
-
-                    MoondropAction.ACTION_PODS_TRANSPARENCY_VOCAL_ENHANCEMENT_CHANGED -> {
-                        transparencyVocalEnhancement.value = p1.getBooleanExtra("enabled", false)
-                    }
-
-                    MoondropAction.ACTION_PODS_SPATIAL_AUDIO_CHANGED -> {
-                        spatialAudioMode.value = p1.getIntExtra("mode", ConfigManager.SPATIAL_AUDIO_OFF)
-                    }
-
-                    MoondropAction.ACTION_PODS_EQ_PRESET_CHANGED -> {
-                        eqPreset.value = p1.getIntExtra("preset", -1)
-                    }
-
-                    MoondropAction.ACTION_PODS_DUAL_DEVICE_CONNECTION_CHANGED -> {
-                        dualDeviceConnection.value = p1.getBooleanExtra("enabled", false)
+                    MoondropAction.ACTION_PODS_GAIN_CHANGED -> {
+                        gainLevel.intValue = p1.getIntExtra("level", 0)
                     }
 
                     MoondropAction.ACTION_PODS_CONNECTED -> {
@@ -349,14 +319,9 @@ fun MainUI(
 
         context.registerReceiver(broadcastReceiver, IntentFilter().apply {
             addAction(MoondropAction.ACTION_PODS_ANC_CHANGED)
-            addAction(MoondropAction.ACTION_PODS_SMART_ANC_LEVEL_CHANGED)
             addAction(MoondropAction.ACTION_PODS_BATTERY_CHANGED)
             addAction(MoondropAction.ACTION_PODS_WEAR_STATUS_CHANGED)
-            addAction(MoondropAction.ACTION_PODS_GAME_MODE_CHANGED)
-            addAction(MoondropAction.ACTION_PODS_TRANSPARENCY_VOCAL_ENHANCEMENT_CHANGED)
-            addAction(MoondropAction.ACTION_PODS_SPATIAL_AUDIO_CHANGED)
-            addAction(MoondropAction.ACTION_PODS_EQ_PRESET_CHANGED)
-            addAction(MoondropAction.ACTION_PODS_DUAL_DEVICE_CONNECTION_CHANGED)
+            addAction(MoondropAction.ACTION_PODS_GAIN_CHANGED)
             addAction(MoondropAction.ACTION_PODS_CONNECTED)
             addAction(MoondropAction.ACTION_PODS_CONNECTION_STATE_CHANGED)
             addAction(MoondropAction.ACTION_PODS_DISCONNECTED)
@@ -419,20 +384,10 @@ fun MainUI(
         }
     }
 
-    fun setGameMode(enabled: Boolean) {
-        gameMode.value = enabled
-        Intent(MoondropAction.ACTION_GAME_MODE_SET).apply {
-            this.putExtra("enabled", enabled)
-            setPackage("com.android.bluetooth")
-            addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
-            context.sendBroadcast(this)
-        }
-    }
-
-    fun setTransparencyVocalEnhancement(enabled: Boolean) {
-        transparencyVocalEnhancement.value = enabled
-        Intent(MoondropAction.ACTION_TRANSPARENCY_VOCAL_ENHANCEMENT_SET).apply {
-            this.putExtra("enabled", enabled)
+    fun setGainLevel(level: Int) {
+        gainLevel.intValue = level
+        Intent(MoondropAction.ACTION_GAIN_SET).apply {
+            this.putExtra("level", level)
             setPackage("com.android.bluetooth")
             addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
             context.sendBroadcast(this)
@@ -463,38 +418,6 @@ fun MainUI(
         hookConnectionState = "connecting"
         Intent(MoondropAction.ACTION_CONNECT_POD_REQUEST).apply {
             putExtra("device", device)
-            setPackage("com.android.bluetooth")
-            addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
-            context.sendBroadcast(this)
-        }
-    }
-
-    fun setSpatialAudioMode(mode: Int) {
-        val normalizedMode = mode.coerceIn(ConfigManager.SPATIAL_AUDIO_OFF, ConfigManager.SPATIAL_AUDIO_HEAD_TRACKING)
-        spatialAudioMode.value = normalizedMode
-        prefs.edit().putInt("spatial_audio_mode", normalizedMode).apply()
-        Intent(MoondropAction.ACTION_SPATIAL_AUDIO_SET).apply {
-            this.putExtra("mode", normalizedMode)
-            setPackage("com.android.bluetooth")
-            addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
-            context.sendBroadcast(this)
-        }
-    }
-
-    fun setEqPreset(preset: Int) {
-        eqPreset.value = preset
-        Intent(MoondropAction.ACTION_EQ_PRESET_SET).apply {
-            this.putExtra("preset", preset)
-            setPackage("com.android.bluetooth")
-            addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
-            context.sendBroadcast(this)
-        }
-    }
-
-    fun setDualDeviceConnection(enabled: Boolean) {
-        dualDeviceConnection.value = enabled
-        Intent(MoondropAction.ACTION_DUAL_DEVICE_CONNECTION_SET).apply {
-            this.putExtra("enabled", enabled)
             setPackage("com.android.bluetooth")
             addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
             context.sendBroadcast(this)
@@ -639,20 +562,8 @@ fun MainUI(
                 displayWearStatus = displayWearStatus,
                 displayAnc = displayAnc,
                 onAncModeChange = { setAncMode(it) },
-                smartAncLevel = smartAncLevel.value,
-                displayTransparencyVocalEnhancement = displayTransparencyVocalEnhancement,
-                onTransparencyVocalEnhancementChange = { setTransparencyVocalEnhancement(it) },
-                displayGameMode = displayGameMode,
-                onGameModeChange = { setGameMode(it) },
-                spatialAudioMode = spatialAudioMode.value,
-                onSpatialAudioModeChange = { setSpatialAudioMode(it) },
-                eqPreset = eqPreset.value,
-                onEqPresetChange = { setEqPreset(it) },
-                displayDualDeviceConnection = displayDualDeviceConnection,
-                onDualDeviceConnectionChange = { setDualDeviceConnection(it) },
-                spatialAudioSupported = displayCapabilities.spatialAudioSupported,
-                spatialSoundSupported = displayCapabilities.spatialSoundSwitchSupported,
-                adaptiveModeEnabled = displayCapabilities.adaptiveSupported,
+                displayGainLevel = gainLevel.intValue,
+                onGainLevelChange = { setGainLevel(it) },
                 earphonePrefs = earphonePrefs.value,
                 connectedDeviceAddress = connectedDeviceAddress,
                 connectingDeviceAddress = connectingDeviceAddress,

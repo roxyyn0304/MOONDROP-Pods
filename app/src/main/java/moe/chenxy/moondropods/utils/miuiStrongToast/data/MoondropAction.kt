@@ -35,7 +35,9 @@ object MoondropAction {
     const val ACTION_RFCOMM_LOG_CLEAR = "chen.action.moondrop.rfcomm_log_clear"
     const val ACTION_RFCOMM_LOG = "chen.action.moondrop.rfcomm_log"
     const val ACTION_RFCOMM_DEBUG_SEND = "chen.action.moondrop.rfcomm_debug_send"
-    // Adaptive模式开关状态变更广播，用于跨进程同步偏好设置（App �?com.android.bluetooth / com.xiaomi.bluetooth�?
+    // Adaptive模式开关状态变更广播，用于跨进程同步偏好设置（App �?com.android.bluetooth / com.xiaomi.bluetooth�?
     const val ACTION_ADAPTIVE_MODE_CHANGED = "chen.action.moondrop.adaptive_mode_changed"
+    const val ACTION_GAIN_SET = "chen.action.moondrop.gain_set"
+    const val ACTION_PODS_GAIN_CHANGED = "chen.action.moondrop.pods_gain_changed"
     const val ACTION_CONFIG_CHANGED = "chen.action.moondrop.config_changed"
 }
