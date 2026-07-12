@@ -165,7 +165,7 @@ object GaiaResponseParser {
     }
 
     /** Parse Gain response */
-    fun parseGainResponse(payload: ByteArray): GainLevel? {
+    fun parseGainResponse(payload: ByteArray): Byte? {
         if (payload.isEmpty()) return null
         return when (payload[0]) {
             GainLevel.HIGH -> GainLevel.HIGH

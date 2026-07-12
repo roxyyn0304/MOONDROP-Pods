@@ -57,19 +57,8 @@ object RfcommController {
     private var isConnected = false
     private var lastTempBatt = 0
     lateinit var currentBatteryParams: BatteryParams
-    private var currentAnc: Int = 1
-    /** -1 = unknown / not in smart mode; otherwise a [NoiseControlMode].ordinal of the
-     *  level smart mode is currently auto-applying (light/medium/deep). */
-    private var currentSmartAncLevel: Int = -1
-    private var currentGameMode: Boolean = false
-    private var currentTransparencyVocalEnhancement: Boolean = false
-    private var currentSpatialAudioMode: Int = SpatialAudioMode.OFF
-    /** -1 = unknown; otherwise one of [EqPreset.ALL]. */
-    private var currentEqPreset: Int = -1
-    private var currentDualDeviceConnection: Boolean = false
-    private var autoGameModeEnabled: Boolean = false
-    private var gameModeImplementation: GameModeImplementation = GameModeImplementation.STANDARD
-    private var lastGameModeStatusUpdateMs: Long = 0L
+    private var currentAncMode: NoiseControlMode = NoiseControlMode.OFF
+    private var currentGainLevel: Byte = GainLevel.HIGH
     private var lastKnownCaseBattery: Int = 0
     private var lastKnownCaseCharging: Boolean = false
     private var cachedDeviceName: String = ""
@@ -95,7 +84,7 @@ object RfcommController {
     private var readerJob: kotlinx.coroutines.Job? = null
     private val reconnectAttempts = AtomicInteger(0)
     private var reconnectPending = false
-    private val OPPO_RFCOMM_UUID: UUID = UUID.fromString("0000079A-D102-11E1-9B23-00025B00A5A5")
+    private val MOONDROP_SPP_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
 
     private val broadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(p0: Context?, p1: Intent?) {
@@ -103,8 +92,25 @@ object RfcommController {
         }
     }
 
-    private fun changeUIAncStatus(status: Int) {
-        if (status < 1 || status > 8) return
+    private fun ancModeToInt(mode: NoiseControlMode): Int = when (mode) {
+        NoiseControlMode.OFF -> 1
+        NoiseControlMode.NOISE_CANCELLATION -> 2
+        NoiseControlMode.TRANSPARENCY -> 3
+        NoiseControlMode.ADAPTIVE -> 4
+        NoiseControlMode.ANTI_WIND -> 5
+    }
+
+    private fun intToAncMode(status: Int): NoiseControlMode? = when (status) {
+        1 -> NoiseControlMode.OFF
+        2 -> NoiseControlMode.NOISE_CANCELLATION
+        3 -> NoiseControlMode.TRANSPARENCY
+        4 -> NoiseControlMode.ADAPTIVE
+        5 -> NoiseControlMode.ANTI_WIND
+        else -> null
+    }
+
+    private fun changeUIAncStatus(mode: NoiseControlMode) {
+        val status = ancModeToInt(mode)
         sendAppStatusBroadcast(MoondropAction.ACTION_PODS_ANC_CHANGED) {
             if (::mDevice.isInitialized) this.putExtra("address", mDevice.address)
             this.putExtra("status", status)
@@ -126,55 +132,8 @@ object RfcommController {
         }
     }
 
-    private var currentWearStatus = WearStatus()
-
-    private fun changeUIWearStatus(status: WearStatus) {
-        sendAppStatusBroadcast(MoondropAction.ACTION_PODS_WEAR_STATUS_CHANGED) {
-            if (::mDevice.isInitialized) this.putExtra("address", mDevice.address)
-            putWearStatusExtras(status)
-        }
-        sendExternalPodsStatusBroadcast(MoondropAction.ACTION_PODS_WEAR_STATUS_CHANGED) {
-            putWearStatusExtras(status)
-        }
-    }
-
-    private fun changeUIGameModeStatus(enabled: Boolean) {
-        sendAppStatusBroadcast(MoondropAction.ACTION_PODS_GAME_MODE_CHANGED) {
-            this.putExtra("enabled", enabled)
-        }
-    }
-
-    private fun changeUITransparencyVocalEnhancementStatus(enabled: Boolean) {
-        sendAppStatusBroadcast(MoondropAction.ACTION_PODS_TRANSPARENCY_VOCAL_ENHANCEMENT_CHANGED) {
-            this.putExtra("enabled", enabled)
-        }
-        sendExternalPodsStatusBroadcast(MoondropAction.ACTION_PODS_TRANSPARENCY_VOCAL_ENHANCEMENT_CHANGED) {
-            putExtra("enabled", enabled)
-        }
-    }
-
-    private fun changeUISpatialAudioStatus(mode: Int) {
-        sendAppStatusBroadcast(MoondropAction.ACTION_PODS_SPATIAL_AUDIO_CHANGED) {
-            this.putExtra("mode", mode)
-        }
-    }
-
-    private fun changeUIEqPreset(presetId: Int) {
-        sendAppStatusBroadcast(MoondropAction.ACTION_PODS_EQ_PRESET_CHANGED) {
-            this.putExtra("preset", presetId)
-        }
-    }
-
-    private fun changeUISmartAncLevel(ordinal: Int) {
-        sendAppStatusBroadcast(MoondropAction.ACTION_PODS_SMART_ANC_LEVEL_CHANGED) {
-            this.putExtra("ordinal", ordinal)
-        }
-    }
-
-    private fun changeUIDualDeviceConnectionStatus(enabled: Boolean) {
-        sendAppStatusBroadcast(MoondropAction.ACTION_PODS_DUAL_DEVICE_CONNECTION_CHANGED) {
-            this.putExtra("enabled", enabled)
-        }
+    private fun changeUIGainStatus(level: Byte) {
+        Log.d(TAG, "Gain status changed: $level")
     }
 
     fun handleUIEvent(intent: Intent) {
@@ -185,14 +144,7 @@ object RfcommController {
                 changeUIConnectionState(currentConnectionState())
                 if (::currentBatteryParams.isInitialized)
                     changeUIBatteryStatus(currentBatteryParams)
-                changeUIWearStatus(currentWearStatus)
-                changeUIAncStatus(currentAnc)
-                changeUISmartAncLevel(currentSmartAncLevel)
-                changeUIGameModeStatus(currentGameMode)
-                changeUITransparencyVocalEnhancementStatus(currentTransparencyVocalEnhancement)
-                changeUISpatialAudioStatus(currentSpatialAudioMode)
-                changeUIEqPreset(currentEqPreset)
-                changeUIDualDeviceConnectionStatus(currentDualDeviceConnection)
+                changeUIAncStatus(currentAncMode)
                 if (::mDevice.isInitialized && isConnected) {
                     sendAppStatusBroadcast(MoondropAction.ACTION_PODS_CONNECTED) {
                         this.putExtra("address", mDevice.address)
@@ -210,50 +162,15 @@ object RfcommController {
             }
             MoondropAction.ACTION_ANC_SELECT -> {
                 val status = intent.getIntExtra("status", 0)
-                setANCMode(status)
+                val mode = intToAncMode(status)
+                if (mode != null) setAncMode(mode)
             }
             MoondropAction.ACTION_REFRESH_STATUS -> {
                 queryStatus(immediateReconnect = true)
             }
-            MoondropAction.ACTION_GAME_MODE_SET -> {
-                val enabled = intent.getBooleanExtra("enabled", false)
-                setGameMode(enabled)
-            }
-            MoondropAction.ACTION_AUTO_GAME_MODE_CHANGED -> {
-                autoGameModeEnabled = intent.getBooleanExtra("enabled", autoGameModeEnabled)
-                Log.d(TAG, "Auto game mode synced: $autoGameModeEnabled")
-            }
-            MoondropAction.ACTION_GAME_MODE_IMPLEMENTATION_CHANGED -> {
-                gameModeImplementation = GameModeImplementation.fromPreference(
-                    intent.getStringExtra(GameModeImplementation.PREF_KEY)
-                )
-                Log.d(TAG, "Game mode implementation synced: ${gameModeImplementation.preferenceValue}")
-            }
-            MoondropAction.ACTION_TRANSPARENCY_VOCAL_ENHANCEMENT_SET -> {
-                val enabled = intent.getBooleanExtra("enabled", false)
-                setTransparencyVocalEnhancement(enabled)
-            }
-            MoondropAction.ACTION_SPATIAL_AUDIO_SET -> {
-                val mode = intent.getIntExtra("mode", SpatialAudioMode.OFF)
-                setSpatialAudioMode(mode)
-            }
-            MoondropAction.ACTION_EQ_PRESET_SET -> {
-                val preset = intent.getIntExtra("preset", -1)
-                if (preset in EqPreset.ALL) setEqPreset(preset)
-            }
-            MoondropAction.ACTION_DUAL_DEVICE_CONNECTION_SET -> {
-                val enabled = intent.getBooleanExtra("enabled", false)
-                setDualDeviceConnection(enabled)
-            }
-            MoondropAction.ACTION_CYCLE_ANC -> {
-                cycleAnc()
-            }
             MoondropAction.ACTION_CONFIG_CHANGED -> {
                 ConfigManager.refreshFromPrefs(mPrefs)
                 Log.d(TAG, "Config synced")
-                if (!currentCapabilities().adaptiveSupported && currentAnc == 4) {
-                    setANCMode(2)
-                }
             }
             MoondropAction.ACTION_RFCOMM_LOG_CONNECT -> {
                 if (!RfcommLog.isEnabled()) {
@@ -276,8 +193,8 @@ object RfcommController {
     fun currentStatusSnapshot(): StatusSnapshot {
         return StatusSnapshot(
             battery = if (::currentBatteryParams.isInitialized) currentBatteryParams else null,
-            anc = currentAnc,
-            transparencyVocalEnhancement = currentTransparencyVocalEnhancement,
+            anc = ancModeToInt(currentAncMode),
+            transparencyVocalEnhancement = false,
             address = if (::mDevice.isInitialized) mDevice.address else null,
             deviceName = if (::mDevice.isInitialized) mDevice.name ?: cachedDeviceName else cachedDeviceName.takeIf { it.isNotEmpty() },
             connected = isConnected && socket != null,
@@ -328,8 +245,7 @@ object RfcommController {
         appUiActiveUntilMs = SystemClock.elapsedRealtime() + APP_UI_ACTIVE_TIMEOUT_MS
     }
 
-
-    fun miuiRefreshPayload(battery: BatteryParams?, anc: Int, transparencyVocalEnhancement: Boolean = false): String {
+    fun miuiRefreshPayload(battery: BatteryParams?, anc: Int, transparencyVocalEnhancement: Boolean): String {
         val values = MutableList(16) { "" }
         values[0] = miuiBatteryValue(battery?.left)
         values[1] = miuiBatteryValue(battery?.right)
@@ -349,89 +265,13 @@ object RfcommController {
     }
 
     private fun miuiAncLevel(anc: Int, transparencyVocalEnhancement: Boolean): String {
-        // MIUI level codes are not ordered like OPPO payloads:
-        // 0103=Smart, 0101=Light, 0100=Medium, 0102=Deep, 0201=Transparency vocal enhancement.
         return when (anc) {
-            5 -> "0103"
-            6 -> "0101"
-            7 -> "0100"
-            8 -> "0102"
+            2 -> "0102"
             3 -> if (transparencyVocalEnhancement) "0201" else "0200"
+            4 -> "0103"
+            5 -> "0100"
             else -> "0000"
         }
-    }
-
-    @OptIn(ExperimentalStdlibApi::class)
-    fun handleBatteryChanged(result: BatteryParser.BatteryResult) {
-        val left = PodParams(
-            result.left?.level ?: 0,
-            result.left?.isCharging == true,
-            result.left != null,
-            0
-        )
-        val right = PodParams(
-            result.right?.level ?: 0,
-            result.right?.isCharging == true,
-            result.right != null,
-            0
-        )
-        val case = if (result.case != null) {
-            lastKnownCaseBattery = result.case.level
-            lastKnownCaseCharging = result.case.isCharging
-            PodParams(
-                result.case.level,
-                result.case.isCharging,
-                true,
-                0
-            )
-        } else {
-            PodParams(
-                lastKnownCaseBattery,
-                lastKnownCaseCharging,
-                false,
-                0
-            )
-        }
-
-        Log.v(TAG, "batt left ${left.battery} right ${right.battery} case ${case.battery}")
-
-        val shouldShowToast = !mShowedConnectedToast
-        if (shouldShowToast) {
-            // Wait until at least one connected ear has valid battery data
-            val hasValidData = (left.isConnected && left.battery > 0) ||
-                    (right.isConnected && right.battery > 0)
-            if (!hasValidData) return
-        }
-
-        val batteryParams = BatteryParams(left, right, case)
-        currentBatteryParams = batteryParams
-
-        if (shouldShowToast) {
-            changeUIConnectionState("connected")
-            sendAppStatusBroadcast(MoondropAction.ACTION_PODS_CONNECTED) {
-                this.putExtra("address", mDevice.address)
-                this.putExtra("device_name", mDevice.name ?: cachedDeviceName)
-            }
-            sendExternalPodsStatusBroadcast(MoondropAction.ACTION_PODS_CONNECTED) {
-                putExtra("device_name", mDevice.name ?: cachedDeviceName)
-            }
-            if (shouldShowIsland(ConfigManager.ISLAND_SHOW_TIMING_CONNECTED)) {
-                MiuiStrongToastUtil.showPodsBatteryToastByMiuiBt(mContext!!, batteryParams, mDevice)
-            }
-            mShowedConnectedToast = true
-        }
-        MiuiStrongToastUtil.showPodsNotificationByMiuiBt(mContext!!, batteryParams, mDevice)
-        changeUIBatteryStatus(batteryParams)
-
-        lastTempBatt = if (left.isConnected && right.isConnected)
-            minOf(left.battery, right.battery)
-        else if (left.isConnected)
-            left.battery
-        else if (right.isConnected)
-            right.battery
-        else SystemApisUtils.BATTERY_LEVEL_UNKNOWN
-
-        setRegularBatteryLevel(lastTempBatt)
     }
 
     private val routeCallback = object : MediaRouter2.RouteCallback() {
@@ -461,7 +301,7 @@ object RfcommController {
     }
 
     private fun createRfcommSocket(device: BluetoothDevice): BluetoothSocket {
-        return device.createRfcommSocketToServiceRecord(OPPO_RFCOMM_UUID)
+        return device.createRfcommSocketToServiceRecord(MOONDROP_SPP_UUID)
     }
 
     fun connectPod(context: Context, device: BluetoothDevice, prefs: SharedPreferences, appRequested: Boolean = false) {
@@ -476,15 +316,8 @@ object RfcommController {
         if (appRequested) {
             markAppUiActive()
         }
-        autoGameModeEnabled = mPrefs.getBoolean("auto_game_mode", false)
-        gameModeImplementation = GameModeImplementation.fromPreference(
-            mPrefs.getString(GameModeImplementation.PREF_KEY, null)
-        )
         ConfigManager.refreshFromPrefs(mPrefs)
-        Log.d(TAG, "Adaptive support initial: ${currentCapabilities().adaptiveSupported}")
-        Log.d(TAG, "Auto game mode initial: $autoGameModeEnabled")
-        Log.d(TAG, "Game mode implementation initial: ${gameModeImplementation.preferenceValue}")
-        Log.d(TAG, "RFCOMM UUID initial: $OPPO_RFCOMM_UUID")
+        Log.d(TAG, "RFCOMM UUID initial: $MOONDROP_SPP_UUID")
 
         if (!receiverRegistered) {
             context.registerReceiver(broadcastReceiver, IntentFilter().apply {
@@ -492,14 +325,6 @@ object RfcommController {
                 this.addAction(MoondropAction.ACTION_PODS_UI_INIT)
                 this.addAction(MoondropAction.ACTION_PODS_UI_CLOSED)
                 this.addAction(MoondropAction.ACTION_REFRESH_STATUS)
-                this.addAction(MoondropAction.ACTION_GAME_MODE_SET)
-                this.addAction(MoondropAction.ACTION_AUTO_GAME_MODE_CHANGED)
-                this.addAction(MoondropAction.ACTION_GAME_MODE_IMPLEMENTATION_CHANGED)
-                this.addAction(MoondropAction.ACTION_TRANSPARENCY_VOCAL_ENHANCEMENT_SET)
-                this.addAction(MoondropAction.ACTION_SPATIAL_AUDIO_SET)
-                this.addAction(MoondropAction.ACTION_EQ_PRESET_SET)
-                this.addAction(MoondropAction.ACTION_DUAL_DEVICE_CONNECTION_SET)
-                this.addAction(MoondropAction.ACTION_CYCLE_ANC)
                 this.addAction(MoondropAction.ACTION_CONFIG_CHANGED)
                 this.addAction(MoondropAction.ACTION_RFCOMM_LOG_CONNECT)
                 this.addAction(MoondropAction.ACTION_RFCOMM_LOG_DISCONNECT)
@@ -517,7 +342,6 @@ object RfcommController {
         changeUIConnectionState("connecting")
 
         connectRfcomm(initialDelayMs = 500L)
-
     }
 
     private fun sendExternalPodsStatusBroadcast(action: String, fill: Intent.() -> Unit = {}) {
@@ -548,47 +372,6 @@ object RfcommController {
         putExtra("case_connected", status.case?.isConnected == true)
     }
 
-    private fun Intent.putWearStatusExtras(status: WearStatus) {
-        putExtra("left_wear_status", status.left?.value ?: -1)
-        putExtra("right_wear_status", status.right?.value ?: -1)
-        putExtra("case_wear_status", status.case?.value ?: -1)
-    }
-
-    private fun mergeWearStatus(current: WearStatus, update: WearStatus): WearStatus {
-        return WearStatus(
-            left = update.left ?: current.left,
-            right = update.right ?: current.right,
-            case = update.case ?: current.case
-        )
-    }
-
-    private fun showIslandForWearStatusChange(previous: WearStatus, current: WearStatus) {
-        if (!::currentBatteryParams.isInitialized) return
-        val changedTimings = setOfNotNull(
-            islandShowTimingForChange(previous.left, current.left),
-            islandShowTimingForChange(previous.right, current.right),
-            islandShowTimingForChange(previous.case, current.case),
-        )
-        if (changedTimings.any { shouldShowIsland(it) }) {
-            MiuiStrongToastUtil.showPodsBatteryToastByMiuiBt(mContext ?: return, currentBatteryParams)
-        }
-    }
-
-    private fun shouldShowIsland(timing: Int): Boolean {
-        return ConfigManager.islandMode() == ConfigManager.ISLAND_MODE_MODULE &&
-                timing in ConfigManager.islandShowTimings()
-    }
-
-    private fun islandShowTimingForChange(previous: WearState?, current: WearState?): Int? {
-        if (previous == current) return null
-        return when (current) {
-            WearState.WEARING -> ConfigManager.ISLAND_SHOW_TIMING_WEARING
-            WearState.REMOVED -> ConfigManager.ISLAND_SHOW_TIMING_REMOVED
-            WearState.IN_CASE -> ConfigManager.ISLAND_SHOW_TIMING_IN_CASE
-            else -> null
-        }
-    }
-
     private fun connectRfcomm(initialDelayMs: Long = 0L) {
         connectionJob?.cancel()
         connectionJob = CoroutineScope(Dispatchers.IO).launch {
@@ -601,22 +384,21 @@ object RfcommController {
                 socket = newSocket
                 reconnectAttempts.set(0)
                 reconnectPending = false
-                Log.d(TAG, "RFCOMM connected! uuid=$OPPO_RFCOMM_UUID")
-                RfcommLog.i(mContext, TAG, "connected uuid=$OPPO_RFCOMM_UUID")
+                Log.d(TAG, "RFCOMM connected! uuid=$MOONDROP_SPP_UUID")
+                RfcommLog.i(mContext, TAG, "connected uuid=$MOONDROP_SPP_UUID")
                 changeUIConnectionState("connecting")
 
                 startPacketReader(newSocket.inputStream)
 
                 delay(300)
-                // Ask the bud which notifications it can push; we subscribe to the
-                // advertised list (minus 0xFx debug channels) in handleOppoPacket.
-                sendPacketSafe(Enums.QUERY_NOTIFICATION_SUPPORT)
+                // Query ANC status
+                sendPacketSafe(GaiaPackets.ANC_QUERY, "anc query")
                 delay(50)
-                sendStatusQueryPackets(immediateReconnect = false)
-
-                if (autoGameModeEnabled) {
-                    enableGameModeOnConnect()
-                }
+                // Query Gain status
+                sendPacketSafe(GaiaPackets.GAIN_QUERY, "gain query")
+                delay(50)
+                // Query device state
+                sendPacketSafe(GaiaPackets.DEVICE_STATE_QUERY, "device state query")
             } catch (e: IOException) {
                 Log.e(TAG, "RFCOMM connect failed", e)
                 changeUIConnectionState("error")
@@ -680,7 +462,7 @@ object RfcommController {
                     if (bytesRead > 0) {
                         val packet = buffer.copyOfRange(0, bytesRead)
                         RfcommLog.d(mContext, "RFCOMM/RX", packet.toHexString(HexFormat.UpperCase))
-                        handleOppoPacket(packet)
+                        handleMoondropPacket(packet)
                     } else if (bytesRead == -1) {
                         Log.d(TAG, "RFCOMM stream ended")
                         RfcommLog.w(mContext, TAG, "stream ended")
@@ -699,153 +481,69 @@ object RfcommController {
     }
 
     @OptIn(ExperimentalStdlibApi::class)
-    private fun handleOppoPacket(packet: ByteArray) {
+    private fun handleMoondropPacket(packet: ByteArray) {
         Log.v(TAG, "Received: ${packet.toHexString(HexFormat.UpperCase)}")
 
-        // Subscribe handshake: the bud replies to QUERY_NOTIFICATION_SUPPORT with the
-        // notification IDs it can push. Subscribe to all of them except the 0xFx debug
-        // channels (f1/f2/f3 push high-rate diagnostic frames that only add latency);
-        // id 0x03 in this list carries the smart-mode current-strength notify.
-        NotificationSupportParser.parse(packet)?.let { ids ->
-            val wanted = ids.filter { (it.toInt() and 0xFF) < 0xF0 }.toByteArray()
-            Log.d(TAG, "Notification ids advertised=${ids.toHexString(HexFormat.UpperCase)} subscribing=${wanted.toHexString(HexFormat.UpperCase)}")
-            CoroutineScope(Dispatchers.IO).launch {
-                sendPacketSafe(Enums.registerMultiNotification(wanted))
+        // Check if packet is valid GAIA format
+        if (packet.size < 8 || packet[0] != MoondropPackets.HEADER_0 || packet[1] != MoondropPackets.HEADER_1) {
+            Log.d(TAG, "Invalid GAIA packet header")
+            return
+        }
+
+        // Parse header
+        val len = ((packet[2].toInt() and 0xFF) shl 8) or (packet[3].toInt() and 0xFF)
+        val seq = packet[4].toInt() and 0xFF
+        val vendor = packet[5].toInt() and 0xFF
+        val feature = packet[6].toInt() and 0xFF
+        val cmd = packet[7].toInt() and 0xFF
+        val payload = if (packet.size > 8) packet.copyOfRange(8, packet.size) else byteArrayOf()
+
+        // Check if this is a response
+        if (!GaiaResponseParser.isResponse(feature)) {
+            Log.d(TAG, "Not a response packet, feature=$feature")
+            return
+        }
+
+        val baseFeature = GaiaResponseParser.baseFeatureId(feature)
+
+        when (baseFeature) {
+            GaiaFeature.ANC -> handleAncResponse(cmd, payload)
+            GaiaFeature.GAIN -> handleGainResponse(cmd, payload)
+            // Add more handlers as needed
+            else -> Log.d(TAG, "Unknown feature: $baseFeature")
+        }
+    }
+
+    private fun handleAncResponse(cmd: Int, payload: ByteArray) {
+        when (cmd) {
+            GaiaCmd.ANC_QUERY -> {
+                val mode = GaiaResponseParser.parseAncResponse(payload)
+                if (mode != null) {
+                    Log.d(TAG, "ANC mode: $mode")
+                    currentAncMode = mode
+                    changeUIAncStatus(mode)
+                }
             }
-            return
-        }
-
-        // Smart-mode current noise-reduction level (cmd 0x0204 type 03 key 04).
-        val smartLevel = SmartAncLevelParser.parse(packet)
-        if (smartLevel != null) {
-            Log.d(TAG, "Smart ANC current level: $smartLevel")
-            val ord = smartLevel.ordinal
-            if (ord != currentSmartAncLevel) {
-                currentSmartAncLevel = ord
-                changeUISmartAncLevel(ord)
+            GaiaCmd.ANC_SET -> {
+                Log.d(TAG, "ANC set confirmed")
             }
-            return
         }
+    }
 
-        // Try parse as battery response (query response, Cmd=0x8106)
-        val batteryResult = BatteryParser.parse(packet)
-        if (batteryResult != null) {
-            handleBatteryChanged(batteryResult)
-            return
-        }
-
-        // Try parse as active battery report (unsolicited, Cmd=0x0204, type=0x01)
-        val activeResult = BatteryParser.parseActiveReport(packet)
-        if (activeResult != null) {
-            handleBatteryChanged(activeResult)
-            return
-        }
-
-        val wearResult = WearStatusParser.parse(packet)
-        if (wearResult != null) {
-            Log.d(TAG, "Wear status received: $wearResult")
-            val previousWearStatus = currentWearStatus
-            currentWearStatus = mergeWearStatus(currentWearStatus, wearResult)
-            changeUIWearStatus(currentWearStatus)
-            showIslandForWearStatusChange(previousWearStatus, currentWearStatus)
-            return
-        }
-
-        val spatialAudioResult = SpatialAudioParser.parseModeNotify(packet)
-        if (spatialAudioResult != null) {
-            Log.i(TAG, "Spatial audio mode notify: packet=${packet.toHexString(HexFormat.UpperCase)}, mode=$spatialAudioResult")
-            currentSpatialAudioMode = spatialAudioResult
-            changeUISpatialAudioStatus(spatialAudioResult)
-            return
-        }
-
-        val spatialAudioSetStatus = SpatialAudioParser.parseSetResponseStatus(packet)
-        if (spatialAudioSetStatus != null) {
-            Log.i(TAG, "Spatial audio set response: packet=${packet.toHexString(HexFormat.UpperCase)}, status=$spatialAudioSetStatus")
-            return
-        }
-
-        val spatialSoundSwitchEnabled = SpatialAudioParser.parseSpatialSoundSwitchSetResponse(packet)
-        if (spatialSoundSwitchEnabled != null) {
-            Log.i(TAG, "Spatial sound switch response: packet=${packet.toHexString(HexFormat.UpperCase)}, enabled=$spatialSoundSwitchEnabled")
-            currentSpatialAudioMode = if (spatialSoundSwitchEnabled) SpatialAudioMode.FIXED else SpatialAudioMode.OFF
-            changeUISpatialAudioStatus(currentSpatialAudioMode)
-            return
-        }
-
-        // EQ preset (handles both 0x0504 push notify and 0x810F query response)
-        val eqPresetResult = EqPresetParser.parse(packet)
-        if (eqPresetResult != null) {
-            Log.d(TAG, "EQ preset received: $eqPresetResult")
-            currentEqPreset = eqPresetResult
-            changeUIEqPreset(eqPresetResult)
-            return
-        }
-
-        // Try parse as ANC mode response
-        val ancResult = AncModeParser.parse(packet, currentCapabilities().ancImplementation)
-        if (ancResult != null) {
-            Log.d(TAG, "ANC mode received: $ancResult")
-            currentAnc = when (ancResult) {
-                NoiseControlMode.OFF -> 1
-                NoiseControlMode.NOISE_CANCELLATION -> 2
-                NoiseControlMode.NOISE_CANCELLATION_SMART -> 5
-                NoiseControlMode.NOISE_CANCELLATION_LIGHT -> 6
-                NoiseControlMode.NOISE_CANCELLATION_MEDIUM -> 7
-                NoiseControlMode.NOISE_CANCELLATION_DEEP -> 8
-                NoiseControlMode.TRANSPARENCY -> 3
-                NoiseControlMode.ADAPTIVE -> 4
+    private fun handleGainResponse(cmd: Int, payload: ByteArray) {
+        when (cmd) {
+            GaiaCmd.GAIN_QUERY -> {
+                val level = GaiaResponseParser.parseGainResponse(payload)
+                if (level != null) {
+                    Log.d(TAG, "Gain level: $level")
+                    currentGainLevel = level
+                    changeUIGainStatus(level)
+                }
             }
-            changeUIAncStatus(currentAnc)
-
-            val transparencyVocalEnhancementResult = TransparencyVocalEnhancementParser.parse(packet)
-            if (transparencyVocalEnhancementResult != null) {
-                Log.d(TAG, "Transparency vocal enhancement received: $transparencyVocalEnhancementResult")
-                currentTransparencyVocalEnhancement = transparencyVocalEnhancementResult
-                changeUITransparencyVocalEnhancementStatus(transparencyVocalEnhancementResult)
+            GaiaCmd.GAIN_SET -> {
+                Log.d(TAG, "Gain set confirmed")
             }
-            return
         }
-
-        val transparencyVocalEnhancementResult = TransparencyVocalEnhancementParser.parse(packet)
-        if (transparencyVocalEnhancementResult != null) {
-            Log.d(TAG, "Transparency vocal enhancement received: $transparencyVocalEnhancementResult")
-            currentTransparencyVocalEnhancement = transparencyVocalEnhancementResult
-            changeUITransparencyVocalEnhancementStatus(transparencyVocalEnhancementResult)
-            return
-        }
-
-        // Try parse as batch query response for switch features (Cmd=0x810D).
-        val switchFeatureStatus = GameModeParser.parseStatus(packet)
-        if (switchFeatureStatus != null) {
-            val gameModeResult = switchFeatureStatus.enabledFor(gameModeImplementation)
-            if (gameModeResult != null) {
-                Log.d(TAG, "Game mode received: $gameModeResult")
-                lastGameModeStatusUpdateMs = SystemClock.elapsedRealtime()
-                currentGameMode = gameModeResult
-                changeUIGameModeStatus(gameModeResult)
-            }
-            val dualDeviceConnectionResult = switchFeatureStatus.dualDeviceConnectionEnabled
-            if (dualDeviceConnectionResult != null) {
-                Log.d(TAG, "Dual-device connection received: $dualDeviceConnectionResult")
-                currentDualDeviceConnection = dualDeviceConnectionResult
-                changeUIDualDeviceConnectionStatus(dualDeviceConnectionResult)
-            }
-            return
-        }
-
-        val setFeatureResult = SwitchFeatureSetParser.parse(packet)
-        if (setFeatureResult != null) {
-            Log.d(TAG, "Switch feature response: status=${setFeatureResult.status}, value=${setFeatureResult.value}")
-            if (setFeatureResult.featureId == GameModeFeature.DUAL_DEVICE_CONNECTION && setFeatureResult.value != null) {
-                currentDualDeviceConnection = setFeatureResult.value == 0x01
-                changeUIDualDeviceConnectionStatus(currentDualDeviceConnection)
-            }
-            return
-        }
-
-        // Unknown packet - log in debug
-        Log.d(TAG, "Unknown OPPO packet: ${packet.toHexString(HexFormat.UpperCase)}")
     }
 
     fun disconnectedPod(context: Context, device: BluetoothDevice) {
@@ -871,14 +569,8 @@ object RfcommController {
         }
 
         mShowedConnectedToast = false
-        currentWearStatus = WearStatus()
-        currentAnc = 1
-        currentSmartAncLevel = -1
-        currentGameMode = false
-        currentTransparencyVocalEnhancement = false
-        currentSpatialAudioMode = SpatialAudioMode.OFF
-        currentEqPreset = -1
-        currentDualDeviceConnection = false
+        currentAncMode = NoiseControlMode.OFF
+        currentGainLevel = GainLevel.HIGH
         lastKnownCaseBattery = 0
         lastKnownCaseCharging = false
         changeUIConnectionState("disconnected")
@@ -917,175 +609,40 @@ object RfcommController {
         sendPacketSafe(packet, "rfcomm debug send")
     }
 
-    fun setGameMode(enabled: Boolean) {
-        Log.d(TAG, "setGameMode: $enabled")
-        currentGameMode = enabled
-        CoroutineScope(Dispatchers.IO).launch {
-            sendGameModePackets(enabled, "game mode control")
+    fun setAncMode(mode: NoiseControlMode) {
+        Log.d(TAG, "setAncMode: $mode")
+        val gaiaMode = when (mode) {
+            NoiseControlMode.OFF -> AncMode.OFF
+            NoiseControlMode.TRANSPARENCY -> AncMode.TRANSPARENCY
+            NoiseControlMode.NOISE_CANCELLATION -> AncMode.NOISE_CANCEL
+            NoiseControlMode.ADAPTIVE -> AncMode.ADAPTIVE
+            NoiseControlMode.ANTI_WIND -> AncMode.ANTI_WIND
         }
-    }
-
-    private suspend fun enableGameModeOnConnect() {
-        delay(500)
-        repeat(3) { attempt ->
-            if (!isConnected || mContext == null) return
-
-            val attemptStartedMs = SystemClock.elapsedRealtime()
-            Log.d(TAG, "Auto game mode: enabling after connect, attempt=${attempt + 1}, implementation=$gameModeImplementation")
-            currentGameMode = true
-            changeUIGameModeStatus(true)
-            sendGameModePackets(true, "auto game mode")
-
-            delay(300)
-            if (!isConnected) return
-            sendPacketSafe(Enums.QUERY_STATUS)
-
-            delay(if (attempt == 0) 700 else 1_500)
-            if (lastGameModeStatusUpdateMs >= attemptStartedMs && currentGameMode) {
-                return
-            }
-            Log.d(TAG, "Auto game mode: attempt ${attempt + 1} did not verify, retrying")
-        }
-    }
-
-    private suspend fun sendGameModePackets(enabled: Boolean, requestReason: String? = null) {
-        Enums.gameModePackets(enabled, gameModeImplementation).forEachIndexed { index, packet ->
-            if (index > 0) delay(120)
-            sendPacketSafe(packet, if (index == 0) requestReason else null)
-        }
-    }
-
-    fun setTransparencyVocalEnhancement(enabled: Boolean) {
-        Log.d(TAG, "setTransparencyVocalEnhancement: $enabled")
-        currentTransparencyVocalEnhancement = enabled
-        changeUITransparencyVocalEnhancementStatus(enabled)
-        val packet = if (enabled) {
-            Enums.TRANSPARENCY_VOCAL_ENHANCEMENT_ON
-        } else {
-            Enums.TRANSPARENCY_VOCAL_ENHANCEMENT_OFF
-        }
-        CoroutineScope(Dispatchers.IO).launch {
-            sendPacketSafe(packet, "transparency vocal enhancement control")
-            delay(350)
-            sendStatusQueryPackets(immediateReconnect = false)
-        }
-    }
-
-    fun setSpatialAudioMode(mode: Int) {
-        val normalizedMode = mode.coerceIn(SpatialAudioMode.OFF, SpatialAudioMode.HEAD_TRACKING)
-        val packet = if (currentCapabilities().spatialSoundSwitchSupported) {
-            Enums.spatialSoundSwitchPacket(normalizedMode != SpatialAudioMode.OFF)
-        } else {
-            Enums.spatialAudioPacket(normalizedMode)
-        }
-        Log.i(TAG, "setSpatialAudioMode: $normalizedMode, packet=${packet.toHexString(HexFormat.UpperCase)}")
-        currentSpatialAudioMode = normalizedMode
-        changeUISpatialAudioStatus(normalizedMode)
-        CoroutineScope(Dispatchers.IO).launch {
-            sendPacketSafe(packet, "spatial audio control")
-        }
-    }
-
-    fun setEqPreset(presetId: Int) {
-        if (presetId !in EqPreset.ALL) {
-            Log.w(TAG, "setEqPreset ignored: invalid preset $presetId")
-            return
-        }
-        val packet = Enums.eqPresetPacket(presetId)
-        Log.i(TAG, "setEqPreset: $presetId, packet=${packet.toHexString(HexFormat.UpperCase)}")
-        currentEqPreset = presetId
-        changeUIEqPreset(presetId)
-        CoroutineScope(Dispatchers.IO).launch {
-            sendPacketSafe(packet, "eq preset control")
-        }
-    }
-
-    fun setDualDeviceConnection(enabled: Boolean) {
-        val packet = Enums.dualDeviceConnectionPacket(enabled)
-        Log.i(TAG, "setDualDeviceConnection: $enabled, packet=${packet.toHexString(HexFormat.UpperCase)}")
-        currentDualDeviceConnection = enabled
-        changeUIDualDeviceConnectionStatus(enabled)
-        CoroutineScope(Dispatchers.IO).launch {
-            sendPacketSafe(packet, "dual-device connection control")
-        }
-    }
-
-    fun cycleAnc() {
-        val cycle = if (currentCapabilities().adaptiveSupported) {
-            listOf(2, 4, 3, 1)
-        } else {
-            listOf(2, 3, 1)
-        }
-        val currentIndex = cycle.indexOf(if (currentAnc in 5..8) 2 else currentAnc)
-        val next = cycle[(currentIndex + 1).floorMod(cycle.size)]
-        setANCMode(next)
-    }
-
-    private fun currentCapabilities(): DeviceCapabilities {
-        return detectDeviceCapabilities(
-            deviceName = if (::mDevice.isInitialized) mDevice.name ?: cachedDeviceName else cachedDeviceName,
-            adaptiveOverride = ConfigManager.adaptiveCapabilityOverride(),
-            spatialAudioOverride = ConfigManager.spatialAudioCapabilityOverride(),
-            spatialSoundSwitchOverride = ConfigManager.spatialSoundSwitchCapabilityOverride(),
-            ancImplementationOverride = ConfigManager.ancImplementationCapabilityOverride(),
-        )
-    }
-
-    private fun Int.floorMod(divisor: Int): Int = ((this % divisor) + divisor) % divisor
-
-    fun setANCMode(mode: Int) {
-        Log.d(TAG, "setANCMode: $mode")
-        currentAnc = mode
-        var packet = when (mode) {
-            1 -> Enums.ANC_OFF
-            2 -> Enums.ANC_NOISE_CANCEL
-            3 -> Enums.ANC_TRANSPARENCY
-            4 -> Enums.ANC_ADAPTIVE
-            5 -> Enums.ANC_NOISE_CANCEL_SMART
-            6 -> Enums.ANC_NOISE_CANCEL_LIGHT
-            7 -> Enums.ANC_NOISE_CANCEL_MEDIUM
-            8 -> Enums.ANC_NOISE_CANCEL_DEEP
-            else -> return
-        }
-        if (currentCapabilities().ancImplementation == AncImplementation.COMPATIBLE) {
-            packet = when (mode) {
-                1 -> Enums.ANC_NOISE_CANCEL
-                2 -> Enums.ANC_OFF
-                else -> packet
-            }
-        }
+        currentAncMode = mode
         changeUIAncStatus(mode)
         CoroutineScope(Dispatchers.IO).launch {
-            sendPacketSafe(packet, "anc control")
-            delay(350)
-            sendStatusQueryPackets(immediateReconnect = false)
+            sendPacketSafe(GaiaPackets.ancSet(gaiaMode), "anc control")
         }
     }
 
-    fun queryBattery() {
+    fun setGainLevel(level: Byte) {
+        Log.d(TAG, "setGainLevel: $level")
+        currentGainLevel = level
+        changeUIGainStatus(level)
         CoroutineScope(Dispatchers.IO).launch {
-            sendPacketSafe(Enums.QUERY_BATTERY, "battery query")
+            sendPacketSafe(GaiaPackets.gainSet(level), "gain control")
         }
     }
 
-    /**
-     * Combo query strategy: send batch query (wake + game mode), then battery, then ANC.
-     */
     fun queryStatus(immediateReconnect: Boolean = true) {
         CoroutineScope(Dispatchers.IO).launch {
-            sendStatusQueryPackets(immediateReconnect)
+            val reason = if (immediateReconnect) "status query" else null
+            sendPacketSafe(GaiaPackets.ANC_QUERY, reason)
+            delay(50)
+            sendPacketSafe(GaiaPackets.GAIN_QUERY, reason)
+            delay(50)
+            sendPacketSafe(GaiaPackets.DEVICE_STATE_QUERY, reason)
         }
-    }
-
-    private suspend fun sendStatusQueryPackets(immediateReconnect: Boolean = true) {
-        val reason = if (immediateReconnect) "status query" else null
-        sendPacketSafe(Enums.QUERY_STATUS, reason)
-        delay(50)
-        sendPacketSafe(Enums.QUERY_BATTERY, reason)
-        delay(50)
-        sendPacketSafe(Enums.QUERY_ANC, reason)
-        delay(50)
-        sendPacketSafe(Enums.QUERY_EQ, reason)
     }
 
     fun disconnectAudio(context: Context, device: BluetoothDevice?) {
