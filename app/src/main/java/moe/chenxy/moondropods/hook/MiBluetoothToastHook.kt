@@ -113,7 +113,7 @@ object MiBluetoothToastHook : HookContext() {
                 val pendingIntent = PendingIntent.getActivity(
                     context,
                     0,
-                    Intent("chen.action.oppopods.show_pods_ui").apply {
+                    Intent("chen.action.moondrop.show_pods_ui").apply {
                         setClassName("moe.chenxy.moondropods", "moe.chenxy.moondropods.PopupActivity")
                         putExtra("android.bluetooth.device.extra.DEVICE", bluetoothDevice)
                         putExtra("bluetoothaddress", bluetoothDevice.address)
@@ -245,7 +245,7 @@ object MiBluetoothToastHook : HookContext() {
 
                     val broadcastReceiver = object : BroadcastReceiver() {
                         override fun onReceive(p0: Context?, p1: Intent?) {
-                            if (p1?.action == "chen.action.oppopods.sendstrongtoast") {
+                            if (p1?.action == "chen.action.moondrop.sendstrongtoast") {
                                 if (ConfigManager.islandMode() != ConfigManager.ISLAND_MODE_MODULE) {
                                     Log.d("OppoPods", "skip module island mode=${ConfigManager.islandMode()}")
                                     return
@@ -254,11 +254,11 @@ object MiBluetoothToastHook : HookContext() {
                                 // Use Focus Island (HyperOS 3+) for battery display
                                 val address = p1.getStringExtra("address").orEmpty()
                                 FocusIslandUtil.showBatteryIsland(context, prefs, batteryParams, address)
-                            } else if (p1?.action == "chen.action.oppopods.updatepodsnotification") {
+                            } else if (p1?.action == "chen.action.moondrop.updatepodsnotification") {
                                 val batteryParams = p1.getParcelableExtra<BatteryParams>("batteryParams", BatteryParams::class.java)
                                 val device = p1.getParcelableExtra("device", BluetoothDevice::class.java)
                                 createPodsNotification(device, context, batteryParams!!)
-                            } else if (p1?.action == "chen.action.oppopods.cancelpodsnotification") {
+                            } else if (p1?.action == "chen.action.moondrop.cancelpodsnotification") {
                                 val device = p1.getParcelableExtra("device", BluetoothDevice::class.java) as BluetoothDevice
                                 cancelNotification(device, context)
                             } else if (p1?.action == MoondropAction.ACTION_PODS_ANC_CHANGED) {
@@ -290,9 +290,9 @@ object MiBluetoothToastHook : HookContext() {
                         }
                     }
 
-                    val intentFilter = IntentFilter("chen.action.oppopods.sendstrongtoast")
-                    intentFilter.addAction("chen.action.oppopods.updatepodsnotification")
-                    intentFilter.addAction("chen.action.oppopods.cancelpodsnotification")
+                    val intentFilter = IntentFilter("chen.action.moondrop.sendstrongtoast")
+                    intentFilter.addAction("chen.action.moondrop.updatepodsnotification")
+                    intentFilter.addAction("chen.action.moondrop.cancelpodsnotification")
                     intentFilter.addAction(MoondropAction.ACTION_CYCLE_ANC)
                     // 监听耳机实际 ANC 状态变更广播，保持 localAncMode �?RfcommController 同步
                     intentFilter.addAction(MoondropAction.ACTION_PODS_ANC_CHANGED)

@@ -104,7 +104,7 @@ object MiuiStrongToastUtil {
         batteryParams: BatteryParams,
         device: BluetoothDevice? = null,
     ) {
-        val intent = Intent("chen.action.oppopods.sendstrongtoast")
+        val intent = Intent("chen.action.moondrop.sendstrongtoast")
         intent.putExtra("batteryParams", batteryParams)
         intent.putExtra("address", device?.address.orEmpty())
         intent.`package` = "com.xiaomi.bluetooth"
@@ -116,7 +116,7 @@ object MiuiStrongToastUtil {
         batteryParams: BatteryParams,
         device: BluetoothDevice,
     ) {
-        val intent = Intent("chen.action.oppopods.updatepodsnotification")
+        val intent = Intent("chen.action.moondrop.updatepodsnotification")
         intent.putExtra("batteryParams", batteryParams)
         intent.putExtra("device", device)
         intent.`package` = "com.xiaomi.bluetooth"
@@ -127,7 +127,7 @@ object MiuiStrongToastUtil {
         context: Context,
         device: BluetoothDevice,
     ) {
-        val intent = Intent("chen.action.oppopods.cancelpodsnotification")
+        val intent = Intent("chen.action.moondrop.cancelpodsnotification")
         intent.putExtra("device", device)
         intent.`package` = "com.xiaomi.bluetooth"
         context.sendBroadcast(intent)
