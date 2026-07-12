@@ -36,20 +36,20 @@ fun AboutPage(
             Card {
                 BasicComponent(
                     title = "MoondropPods-Enhanced",
-                    summary = "https://github.com/1812z/OppoPods",
+                    summary = "https://github.com/1812z/MOONDROP-Pods",
                     onClick = {
                         Intent(Intent.ACTION_VIEW).apply {
-                            this.data = Uri.parse("https://github.com/1812z/OppoPods")
+                            this.data = Uri.parse("https://github.com/1812z/MOONDROP-Pods")
                             context.startActivity(this)
                         }
                     }
                 )
                 BasicComponent(
                     title = "MoondropPods",
-                    summary = "https://github.com/Leaf-lsgtky/OppoPods",
+                    summary = "https://github.com/Leaf-lsgtky/MOONDROP-Pods",
                     onClick = {
                         Intent(Intent.ACTION_VIEW).apply {
-                            this.data = Uri.parse("https://github.com/Leaf-lsgtky/OppoPods")
+                            this.data = Uri.parse("https://github.com/Leaf-lsgtky/MOONDROP-Pods")
                             context.startActivity(this)
                         }
                     }
