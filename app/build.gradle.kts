@@ -15,11 +15,11 @@ apksign {
 }
 
 android {
-    namespace = "moe.chenxy.oppopods"
+    namespace = "moe.chenxy.moondropods"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "moe.chenxy.oppopods"
+        applicationId = "moe.chenxy.moondropods"
         minSdk = 35
         targetSdk = 36
         versionCode = 15
