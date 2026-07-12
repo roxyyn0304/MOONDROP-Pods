@@ -22,7 +22,7 @@ import moe.chenxy.moondropods.utils.miuiStrongToast.data.PodParams
 @SuppressLint("MissingPermission")
 object MiLinkServiceHook : HookContext() {
     internal const val TAG = "MoondropPods-MiLink"
-    private const val PREFS_NAME = "oppopods_milink_state"
+    private const val PREFS_NAME = "moondropods_milink_state"
     private val knownOppoAddresses = linkedSetOf<String>()
     internal var context: Context? = null
     private var receiverRegistered = false

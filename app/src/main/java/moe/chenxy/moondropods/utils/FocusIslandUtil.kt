@@ -16,7 +16,7 @@ import moe.chenxy.moondropods.utils.miuiStrongToast.data.BatteryParams
 @SuppressLint("WrongConstant")
 object FocusIslandUtil {
     private const val TAG = "MoondropPods-FocusIsland"
-    private const val CHANNEL_ID = "oppopods_focus_island"
+    private const val CHANNEL_ID = "moondropods_focus_island"
     private const val CHANNEL_NAME = "MoondropPods Battery"
     private const val NOTIFICATION_ID = 10086
     private const val ISLAND_TIMEOUT_SECONDS = 3

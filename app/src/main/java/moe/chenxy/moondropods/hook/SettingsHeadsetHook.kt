@@ -18,7 +18,7 @@ import java.util.WeakHashMap
 @SuppressLint("MissingPermission")
 object SettingsHeadsetHook : HookContext() {
     private const val TAG = "MoondropPods-Settings"
-    private const val PREFS_NAME = "oppopods_milink_state"
+    private const val PREFS_NAME = "moondropods_milink_state"
     private const val SETTINGS_REFRESH_INTERVAL_MS = 3_000L
     private val knownOppoAddresses = linkedSetOf<String>()
     private val batteryViews = WeakHashMap<Any, BluetoothDevice>()
