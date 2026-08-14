@@ -1,8 +1,10 @@
 name: Release
 
 on:
+  push:
+    tags: [ "v*" ]
   release:
-    types: [published]
+    types: [ published ]
 
 permissions:
   contents: write
@@ -73,3 +75,4 @@ jobs:
         with:
           files: ${{ steps.sign.outputs.apk }}
           token: ${{ secrets.GITHUB_TOKEN }}
+          generate_release_notes: true
