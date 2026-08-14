@@ -1,21 +1,18 @@
-name: Build Release APK
+name: Release
 
 on:
-  push:
-    tags: [ "v*" ]
-    branches: [ "master", "main" ]
-  pull_request:
-    branches: [ "master", "main" ]
-  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -28,6 +25,11 @@ jobs:
 
       - name: Grant execute permission
         run: chmod +x gradlew
+
+      - name: Get version
+        id: version
+        shell: bash
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
 
       - name: Build release APK
         run: ./gradlew :app:assembleRelease
@@ -44,8 +46,7 @@ jobs:
             exit 1
           fi
 
-          VERSION_NAME=$(grep -oP 'versionName\s*=\s*"\K[^"]+' app/build.gradle.kts || echo "unversioned")
-          OUT_NAME="OppoPods-${VERSION_NAME}-release.apk"
+          OUT_NAME="MOONDROP-Pods-${{ steps.version.outputs.version }}-release.apk"
 
           BUILD_TOOLS=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)
 
@@ -67,20 +68,8 @@ jobs:
           fi
           echo "apk=$OUT_NAME" >> "$GITHUB_OUTPUT"
 
-      # Non-zipped artifact upload — GitHub Actions 2026-02 feature
-      - name: Upload Release APK
-        uses: actions/upload-artifact@v7
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
         with:
-          name: ${{ steps.sign.outputs.apk }}
-          path: ./${{ steps.sign.outputs.apk }}
-          archive: false
-          if-no-files-found: error
-
-      - name: Create GitHub Release
-        if: ${{ startsWith(github.ref, 'refs/tags/') && steps.sign.outputs.signed == 'true' }}
-        uses: ncipollo/release-action@v1
-        with:
-          token: ${{ github.token }}
-          artifacts: "./${{ steps.sign.outputs.apk }}"
-          generateReleaseNotes: true
-          makeLatest: true
+          files: ${{ steps.sign.outputs.apk }}
+          token: ${{ secrets.GITHUB_TOKEN }}
