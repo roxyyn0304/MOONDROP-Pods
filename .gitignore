@@ -22,3 +22,16 @@ opencode.json
 /.qoder
 
 promat.md
+build.bat
+
+# 构建产物与本地文件
+*.apk
+*.aab
+*.log
+*.hprof
+*.jks
+*.keystore
+.kotlin/
+/build/
+/captures/
+app/build/

@@ -47,6 +47,12 @@ An Xposed module that provides system-level MOONDROP earphone control for Xiaomi
 3. Use the one-tap scope restart button in the top-right corner of the app
 4. Connect your MOONDROP earphones via Bluetooth
 
+> ⚠️ **Important: Always control your earphones from the module's own UI (ANC / Gain / Battery, etc.)**
+>
+> The earphone interface in the system Bluetooth settings (device card, detail page, etc.) shows state injected by this module, which **may not be accurate**.
+> **Do not change any settings in the system Bluetooth earphone interface** — issues caused by changes made there (wrong state, settings not taking effect, etc.) are **not supported**.
+> Always control the earphones through the module app / module popup.
+
 ### Credits
 
 - [OppoPods](https://github.com/1812z/OppoPods) by 1812z — original project
