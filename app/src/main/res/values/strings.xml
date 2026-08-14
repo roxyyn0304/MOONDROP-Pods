@@ -26,7 +26,6 @@
     <string name="more_click_action_summary">Choose where tapping \"More\" in the module popup opens</string>
     <string name="notification_click_module_popup">Module popup</string>
     <string name="click_action_system_settings">System Settings</string>
-    <string name="click_action_heytap">HeyTap Headset</string>
     <string name="click_action_module">Module</string>
     <string name="enabled">On</string>
     <string name="off">Off</string>
@@ -117,7 +116,7 @@
     <string name="island_show_timing_removed">When removed</string>
     <string name="island_show_timing_in_case">When put in case</string>
     <string name="fake_device_id">Fake earphone model</string>
-    <string name="fake_device_id_summary">Empty value falls back to 01010607.</string>
+    <string name="fake_device_id_summary">Empty value falls back to 01010901 (Redmi Buds 5 Pro, K75).</string>
     <string name="notification_btn_disconnect">Disconnect</string>
     <string name="restart_scope_title">Restart Scope</string>
     <string name="restart_scope_summary">Select apps to restart with root.</string>

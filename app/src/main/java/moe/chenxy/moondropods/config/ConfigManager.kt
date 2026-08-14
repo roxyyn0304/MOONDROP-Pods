@@ -34,7 +34,13 @@ object ConfigManager {
     const val PREF_KEY_SPATIAL_AUDIO_CAPABILITY_OVERRIDE = "spatial_audio_capability_override"
     const val PREF_KEY_SPATIAL_SOUND_SWITCH_CAPABILITY_OVERRIDE = "spatial_sound_switch_capability_override"
     const val PREF_KEY_ANC_IMPLEMENTATION_CAPABILITY_OVERRIDE = "anc_implementation_capability_override"
-    const val DEFAULT_FAKE_DEVICE_ID = "01010607"
+    /**
+     * 默认伪装的小米耳机 deviceId。
+     * 01010901 = K75 White（Redmi Buds 5 Pro 晴雪白；K75 系列功能全：LDAC/LHDC、ANC、查找设备等）。
+     * 依据：MIUI Settings HeadsetIDConstants.isK75WhiteHeadset("01010901") 实测反编译确认。
+     * 其他可选：01010902=K75 Black、01010903=K75A White、01010904=K75A Black、01011406=K75S。
+     */
+    const val DEFAULT_FAKE_DEVICE_ID = "01010901"
     const val LOG_LEVEL_OFF = 0
     const val LOG_LEVEL_BASIC = 1
     const val LOG_LEVEL_DEBUG = 2
