@@ -597,10 +597,6 @@ fun MainUI(
                     moreClickAction.value = it
                     ConfigManager.updateMoreClickAction(prefs, xposedService, it)
                 },
-                adaptiveCapabilityOverride = adaptiveCapabilityOverride,
-                spatialAudioCapabilityOverride = spatialAudioCapabilityOverride,
-                spatialSoundSwitchCapabilityOverride = spatialSoundSwitchCapabilityOverride,
-                onOpenDeviceCapabilities = { backStack.add(Screen.DeviceCapabilities) },
                 onOpenRfcommDebug = { backStack.add(Screen.RfcommDebug) },
                 fakeDeviceId = fakeDeviceId,
                 onFakeDeviceIdChange = {

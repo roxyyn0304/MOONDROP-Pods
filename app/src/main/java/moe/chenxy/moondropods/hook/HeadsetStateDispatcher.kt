@@ -93,6 +93,6 @@ object HeadsetStateDispatcher : HookContext() {
     @SuppressLint("MissingPermission")
     fun isOppoPod(device: BluetoothDevice): Boolean {
         val name = device.name ?: return false
-        return name.contains("oppo", ignoreCase = true)
+        return name.contains("moondrop", ignoreCase = true)
     }
 }

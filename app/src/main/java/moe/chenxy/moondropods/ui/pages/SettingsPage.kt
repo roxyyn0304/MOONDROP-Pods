@@ -41,10 +41,6 @@ fun SettingsPage(
     onNotificationClickActionChange: (Int) -> Unit = {},
     moreClickAction: MutableState<Int> = mutableStateOf(ConfigManager.MORE_CLICK_MODULE),
     onMoreClickActionChange: (Int) -> Unit = {},
-    adaptiveCapabilityOverride: MutableState<Int> = mutableStateOf(ConfigManager.CAPABILITY_OVERRIDE_AUTO),
-    spatialAudioCapabilityOverride: MutableState<Int> = mutableStateOf(ConfigManager.CAPABILITY_OVERRIDE_AUTO),
-    spatialSoundSwitchCapabilityOverride: MutableState<Int> = mutableStateOf(ConfigManager.CAPABILITY_OVERRIDE_AUTO),
-    onOpenDeviceCapabilities: () -> Unit = {},
     fakeDeviceId: MutableState<String> = mutableStateOf(ConfigManager.DEFAULT_FAKE_DEVICE_ID),
     onFakeDeviceIdChange: (String) -> Unit = {},
     onOpenTheme: () -> Unit = {},
@@ -69,9 +65,6 @@ fun SettingsPage(
     )
     val islandShowTimingOptions = listOf(
         ConfigManager.ISLAND_SHOW_TIMING_CONNECTED to stringResource(R.string.island_show_timing_connected),
-        ConfigManager.ISLAND_SHOW_TIMING_WEARING to stringResource(R.string.island_show_timing_wearing),
-        ConfigManager.ISLAND_SHOW_TIMING_REMOVED to stringResource(R.string.island_show_timing_removed),
-        ConfigManager.ISLAND_SHOW_TIMING_IN_CASE to stringResource(R.string.island_show_timing_in_case),
     )
     val islandShowTimingEntries = remember(islandShowTimings.value, islandShowTimingOptions) {
         listOf(
@@ -94,33 +87,19 @@ fun SettingsPage(
     val notificationClickActionValues = listOf(
         ConfigManager.NOTIFICATION_CLICK_MODULE_POPUP,
         ConfigManager.NOTIFICATION_CLICK_SYSTEM_SETTINGS,
-        ConfigManager.NOTIFICATION_CLICK_HEYTAP,
     )
     val notificationClickActionOptions = listOf(
         stringResource(R.string.notification_click_module_popup),
         stringResource(R.string.click_action_system_settings),
-        stringResource(R.string.click_action_heytap),
     )
     val moreClickActionValues = listOf(
-        ConfigManager.MORE_CLICK_HEYTAP,
-        ConfigManager.MORE_CLICK_SYSTEM_SETTINGS,
         ConfigManager.MORE_CLICK_MODULE,
+        ConfigManager.MORE_CLICK_SYSTEM_SETTINGS,
     )
     val moreClickActionOptions = listOf(
-        stringResource(R.string.click_action_heytap),
-        stringResource(R.string.click_action_system_settings),
         stringResource(R.string.click_action_module),
+        stringResource(R.string.click_action_system_settings),
     )
-    val adaptiveCapabilityText = capabilityOverrideLabel(adaptiveCapabilityOverride.value)
-    val spatialAudioCapabilityText = capabilityOverrideLabel(spatialAudioCapabilityOverride.value)
-    val spatialSoundCapabilityText = capabilityOverrideLabel(spatialSoundSwitchCapabilityOverride.value)
-    val deviceCapabilitySummary = listOf(
-        stringResource(R.string.adaptive_mode) to adaptiveCapabilityText,
-        stringResource(R.string.spatial_audio) to spatialAudioCapabilityText,
-        stringResource(R.string.spatial_sound) to spatialSoundCapabilityText,
-    ).joinToString(" / ") { (label, value) ->
-        "$label: $value"
-    }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -168,11 +147,6 @@ fun SettingsPage(
 
         item {
             Card(modifier = Modifier.padding(top = 12.dp)) {
-                BasicComponent(
-                    title = stringResource(R.string.device_capabilities),
-                    summary = deviceCapabilitySummary,
-                    onClick = onOpenDeviceCapabilities,
-                )
                 OverlayDropdownPreference(
                     title = stringResource(R.string.island_mode),
                     summary = stringResource(R.string.island_mode_summary),
@@ -222,7 +196,7 @@ fun SettingsPage(
             Card(modifier = Modifier.padding(top = 12.dp)) {
                 BasicComponent(
                     title = stringResource(R.string.about),
-                    summary = "MoondropPods-Enhanced",
+                    summary = "MOONDROP-Pods",
                     onClick = onOpenAbout
                 )
             }

@@ -23,13 +23,12 @@ object MoondropPackets {
         payload: ByteArray = byteArrayOf()
     ): ByteArray {
         val payLen = payload.size
-        // Len = 1 (feature) + 1 (cmd) + payload.size
-        val len = 1 + 1 + payLen
         val packet = ByteArray(8 + payLen) // Header(2) + Len(2) + Seq(1) + Vendor(1) + Feature(1) + Cmd(1) + Payload
         packet[0] = HEADER_0
         packet[1] = HEADER_1
-        packet[2] = ((len shr 8) and 0xFF).toByte() // Len high byte
-        packet[3] = (len and 0xFF).toByte()          // Len low byte
+        // Len: big-endian, payload size only (matches btsnoop capture)
+        packet[2] = ((payLen shr 8) and 0xFF).toByte() // Len high byte
+        packet[3] = (payLen and 0xFF).toByte()          // Len low byte
         packet[4] = seq.toByte()
         packet[5] = VENDOR_ID.toByte()
         packet[6] = feature.toByte()
@@ -45,7 +44,8 @@ object GaiaFeature {
     const val ANC: Int = 0x40       // ANC control
     const val GAIN: Int = 0x1E      // Gain control
     const val CODEC: Int = 0x20     // Codec (LDAC/LC3)
-    const val DEVICE_MGMT: Int = 0x1A // Device management
+    const val DEVICE_MGMT: Int = 0x1A // Device management (battery query)
+    const val EQ: Int = 0x0A        // EQ params
 }
 
 /** Command IDs for MOONDROP GAIA protocol */
@@ -71,15 +71,22 @@ object GaiaCmd {
     // Codec commands (Feature=0x20)
     const val LDAC_STATUS: Int = 0x05
     const val LC3_STATUS: Int = 0x01
+
+    // Device management commands (Feature=0x1A)
+    /** 电量查询: payload = [01 02] (01=左耳, 02=右耳), 响应含充电盒(03) */
+    const val BATTERY_QUERY: Int = 0x01
 }
 
-/** ANC mode values */
+/**
+ * ANC mode values (btsnoop 抓包确认, 见 moondrop-gaia-protocol):
+ * 0x00=关闭, 0x01=自适应, 0x02=通透, 0x03=抗风噪, 0x04=降噪组入口(恢复上次子模式)
+ */
 object AncMode {
     const val OFF: Byte = 0x00
-    const val TRANSPARENCY: Byte = 0x01
-    const val NOISE_CANCEL: Byte = 0x02
-    const val ADAPTIVE: Byte = 0x08
-    const val ANTI_WIND: Byte = 0x10
+    const val ADAPTIVE: Byte = 0x01
+    const val TRANSPARENCY: Byte = 0x02
+    const val ANTI_WIND: Byte = 0x03
+    const val NOISE_CANCEL: Byte = 0x04
 }
 
 /** Gain level values */
@@ -98,8 +105,11 @@ enum class NoiseControlMode {
     ANTI_WIND
 }
 
+/** 降噪组包含 0x04(组入口)/0x01(自适应)/0x03(抗风噪)，UI 上统一高亮"降噪"按钮 */
 fun NoiseControlMode.isNoiseCancellation(): Boolean {
-    return this == NoiseControlMode.NOISE_CANCELLATION
+    return this == NoiseControlMode.NOISE_CANCELLATION ||
+        this == NoiseControlMode.ADAPTIVE ||
+        this == NoiseControlMode.ANTI_WIND
 }
 
 // ponytail: kept as stub for UI compatibility - MOONDROP doesn't support wear detection
@@ -136,6 +146,19 @@ object GaiaPackets {
     val GAIN_QUERY: ByteArray = MoondropPackets.buildPacket(
         feature = GaiaFeature.GAIN,
         cmd = GaiaCmd.GAIN_QUERY
+    )
+
+    // Battery query: payload [01 02] = query left(01) + right(02), case(03) included in response
+    val BATTERY_QUERY: ByteArray = MoondropPackets.buildPacket(
+        feature = GaiaFeature.DEVICE_MGMT,
+        cmd = GaiaCmd.BATTERY_QUERY,
+        payload = byteArrayOf(0x01, 0x02)
+    )
+
+    // Firmware version query
+    val FIRMWARE_VERSION_QUERY: ByteArray = MoondropPackets.buildPacket(
+        feature = GaiaFeature.BASE,
+        cmd = GaiaCmd.FIRMWARE_VERSION
     )
 
     // Device state query
@@ -190,5 +213,32 @@ object GaiaResponseParser {
             GainLevel.LOW -> GainLevel.LOW
             else -> null
         }
+    }
+
+    /**
+     * Parse battery response (Feature=0x1B, Cmd=0x01).
+     * Payload = [ID:1][level:1]... pairs; ID: 01=左耳, 02=右耳, 03=充电盒; level 0-100, 0xFF=不可用
+     * Returns list of (id, level) pairs.
+     */
+    fun parseBatteryResponse(payload: ByteArray): List<Pair<Int, Int>> {
+        if (payload.size < 2 || payload.size % 2 != 0) return emptyList()
+        return buildList {
+            var i = 0
+            while (i + 1 < payload.size) {
+                val id = payload[i].toInt() and 0xFF
+                val level = payload[i + 1].toInt() and 0xFF
+                add(id to level)
+                i += 2
+            }
+        }
+    }
+
+    /**
+     * Parse ANC available modes response (Feature=0x41, Cmd=0x29).
+     * 5 bytes: 关闭/自适应/通透/抗风噪/降噪 available flags (0x01=available).
+     */
+    fun parseAncAvailableModes(payload: ByteArray): List<Int> {
+        if (payload.isEmpty()) return emptyList()
+        return payload.map { it.toInt() and 0xFF }
     }
 }

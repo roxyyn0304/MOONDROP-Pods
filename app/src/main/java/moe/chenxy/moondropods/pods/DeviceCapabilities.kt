@@ -3,8 +3,9 @@ package moe.chenxy.moondropods.pods
 data class DeviceCapabilities(
     val ancSupported: Boolean = true,
     val gainSupported: Boolean = true,
-    val adaptiveSupported: Boolean = false,
-    val antiWindSupported: Boolean = false,
+    // MOONDROP Pudding 实测支持自适应/抗风噪 (btsnoop 确认 0x01/0x03)
+    val adaptiveSupported: Boolean = true,
+    val antiWindSupported: Boolean = true,
     val spatialAudioSupported: Boolean = false,
     val spatialSoundSwitchSupported: Boolean = false,
     val gameModeSupported: Boolean = false,
@@ -29,8 +30,8 @@ fun detectDeviceCapabilities(
     return DeviceCapabilities(
         ancSupported = true,
         gainSupported = true,
-        adaptiveSupported = applyOverride(false, adaptiveOverride),
-        antiWindSupported = false,
+        adaptiveSupported = applyOverride(true, adaptiveOverride),
+        antiWindSupported = true,
         spatialAudioSupported = applyOverride(false, spatialAudioOverride),
         spatialSoundSwitchSupported = applyOverride(false, spatialSoundSwitchOverride),
         gameModeSupported = false,

@@ -491,7 +491,7 @@ object SettingsHeadsetHook : HookContext() {
         val address = runCatching { device.address }.getOrNull()
         if (address != null && isOppoAddress(address)) return true
         val name = runCatching { device.name ?: device.alias }.getOrNull().orEmpty()
-        val result = name.contains("oppo", ignoreCase = true)
+        val result = name.contains("moondrop", ignoreCase = true)
         if (result && address != null) {
             knownOppoAddresses.add(address.uppercase())
             currentAddress = address

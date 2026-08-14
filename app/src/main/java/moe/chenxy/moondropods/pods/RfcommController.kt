@@ -25,12 +25,12 @@ import moe.chenxy.moondropods.utils.MediaControl
 import moe.chenxy.moondropods.utils.SystemApisUtils
 import moe.chenxy.moondropods.utils.SystemApisUtils.setIconVisibility
 import moe.chenxy.moondropods.utils.miuiStrongToast.MiuiStrongToastUtil
-import moe.chenxy.moondropods.utils.miuiStrongToast.MiuiStrongToastUtil.cancelPodsNotificationByMiuiBt
 import moe.chenxy.moondropods.utils.miuiStrongToast.data.BatteryParams
 import moe.chenxy.moondropods.utils.miuiStrongToast.data.MoondropAction
 import moe.chenxy.moondropods.utils.miuiStrongToast.data.PodParams
 import java.io.IOException
 import java.io.InputStream
+import java.io.ByteArrayOutputStream
 import android.content.SharedPreferences
 import java.util.UUID
 import java.util.concurrent.Executor
@@ -86,6 +86,13 @@ object RfcommController {
     private var reconnectPending = false
     private val MOONDROP_SPP_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
 
+    // RX stream buffer for packet reassembly (handles partial/coalesced frames)
+    private val rxBuffer = ByteArrayOutputStream()
+
+    // Latest ANC available modes from device (Cmd=0x29), null until first response
+    var ancAvailableModes: List<Int>? = null
+        private set
+
     private val broadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(p0: Context?, p1: Intent?) {
             handleUIEvent(p1!!)
@@ -134,6 +141,9 @@ object RfcommController {
 
     private fun changeUIGainStatus(level: Byte) {
         Log.d(TAG, "Gain status changed: $level")
+        sendAppStatusBroadcast(MoondropAction.ACTION_PODS_GAIN_CHANGED) {
+            this.putExtra("level", level.toInt())
+        }
     }
 
     fun handleUIEvent(intent: Intent) {
@@ -164,6 +174,10 @@ object RfcommController {
                 val status = intent.getIntExtra("status", 0)
                 val mode = intToAncMode(status)
                 if (mode != null) setAncMode(mode)
+            }
+            MoondropAction.ACTION_GAIN_SET -> {
+                val level = intent.getIntExtra("level", GainLevel.HIGH.toInt()).toByte()
+                setGainLevel(level)
             }
             MoondropAction.ACTION_REFRESH_STATUS -> {
                 queryStatus(immediateReconnect = true)
@@ -325,6 +339,7 @@ object RfcommController {
                 this.addAction(MoondropAction.ACTION_PODS_UI_INIT)
                 this.addAction(MoondropAction.ACTION_PODS_UI_CLOSED)
                 this.addAction(MoondropAction.ACTION_REFRESH_STATUS)
+                this.addAction(MoondropAction.ACTION_GAIN_SET)
                 this.addAction(MoondropAction.ACTION_CONFIG_CHANGED)
                 this.addAction(MoondropAction.ACTION_RFCOMM_LOG_CONNECT)
                 this.addAction(MoondropAction.ACTION_RFCOMM_LOG_DISCONNECT)
@@ -394,11 +409,20 @@ object RfcommController {
                 // Query ANC status
                 sendPacketSafe(GaiaPackets.ANC_QUERY, "anc query")
                 delay(50)
+                // Query ANC available modes (capability detection)
+                sendPacketSafe(GaiaPackets.ANC_AVAILABLE_QUERY, "anc available query")
+                delay(50)
                 // Query Gain status
                 sendPacketSafe(GaiaPackets.GAIN_QUERY, "gain query")
                 delay(50)
+                // Query battery
+                sendPacketSafe(GaiaPackets.BATTERY_QUERY, "battery query")
+                delay(50)
                 // Query device state
                 sendPacketSafe(GaiaPackets.DEVICE_STATE_QUERY, "device state query")
+                delay(50)
+                // Query firmware version
+                sendPacketSafe(GaiaPackets.FIRMWARE_VERSION_QUERY, "firmware version query")
             } catch (e: IOException) {
                 Log.e(TAG, "RFCOMM connect failed", e)
                 changeUIConnectionState("error")
@@ -454,15 +478,15 @@ object RfcommController {
 
     private fun startPacketReader(inputStream: InputStream) {
         readerJob?.cancel()
+        rxBuffer.reset()
         readerJob = CoroutineScope(Dispatchers.IO).launch {
             val buffer = ByteArray(1024)
             try {
                 while (isConnected) {
                     val bytesRead = inputStream.read(buffer)
                     if (bytesRead > 0) {
-                        val packet = buffer.copyOfRange(0, bytesRead)
-                        RfcommLog.d(mContext, "RFCOMM/RX", packet.toHexString(HexFormat.UpperCase))
-                        handleMoondropPacket(packet)
+                        rxBuffer.write(buffer, 0, bytesRead)
+                        drainPackets()
                     } else if (bytesRead == -1) {
                         Log.d(TAG, "RFCOMM stream ended")
                         RfcommLog.w(mContext, TAG, "stream ended")
@@ -478,6 +502,30 @@ object RfcommController {
                 }
             }
         }
+    }
+
+    /** Extract complete GAIA packets from the RX buffer by Len field; keeps partial tail. */
+    @OptIn(ExperimentalStdlibApi::class)
+    private fun drainPackets() {
+        val data = rxBuffer.toByteArray()
+        var offset = 0
+        while (data.size - offset >= 8) {
+            if (data[offset].toInt() and 0xFF != MoondropPackets.HEADER_0.toInt() and 0xFF ||
+                data[offset + 1].toInt() and 0xFF != MoondropPackets.HEADER_1.toInt() and 0xFF
+            ) {
+                offset++ // resync: skip garbage byte
+                continue
+            }
+            val len = ((data[offset + 2].toInt() and 0xFF) shl 8) or (data[offset + 3].toInt() and 0xFF)
+            val totalLen = 8 + len
+            if (data.size - offset < totalLen) break // incomplete frame, wait for more data
+            val packet = data.copyOfRange(offset, offset + totalLen)
+            RfcommLog.d(mContext, "RFCOMM/RX", packet.toHexString(HexFormat.UpperCase))
+            handleMoondropPacket(packet)
+            offset += totalLen
+        }
+        rxBuffer.reset()
+        if (offset < data.size) rxBuffer.write(data, offset, data.size - offset)
     }
 
     @OptIn(ExperimentalStdlibApi::class)
@@ -496,7 +544,8 @@ object RfcommController {
         val vendor = packet[5].toInt() and 0xFF
         val feature = packet[6].toInt() and 0xFF
         val cmd = packet[7].toInt() and 0xFF
-        val payload = if (packet.size > 8) packet.copyOfRange(8, packet.size) else byteArrayOf()
+        // Payload length is determined by the Len field, not the buffer size (trailing bytes may exist)
+        val payload = if (packet.size >= 8 + len) packet.copyOfRange(8, 8 + len) else byteArrayOf()
 
         // Check if this is a response
         if (!GaiaResponseParser.isResponse(feature)) {
@@ -509,6 +558,7 @@ object RfcommController {
         when (baseFeature) {
             GaiaFeature.ANC -> handleAncResponse(cmd, payload)
             GaiaFeature.GAIN -> handleGainResponse(cmd, payload)
+            GaiaFeature.DEVICE_MGMT -> handleBatteryResponse(cmd, payload)
             // Add more handlers as needed
             else -> Log.d(TAG, "Unknown feature: $baseFeature")
         }
@@ -527,7 +577,72 @@ object RfcommController {
             GaiaCmd.ANC_SET -> {
                 Log.d(TAG, "ANC set confirmed")
             }
+            GaiaCmd.ANC_AVAILABLE -> {
+                // 5 bytes: 关闭/自适应/通透/抗风噪/降噪 availability flags
+                val modes = GaiaResponseParser.parseAncAvailableModes(payload)
+                ancAvailableModes = modes
+                Log.d(TAG, "ANC available modes: ${modes.joinToString(",")}")
+            }
         }
+    }
+
+    /** Handle battery response (Feature=0x1B, Cmd=0x01): [ID:1][level:1]... pairs */
+    private fun handleBatteryResponse(cmd: Int, payload: ByteArray) {
+        if (cmd != GaiaCmd.BATTERY_QUERY) return
+        val pairs = GaiaResponseParser.parseBatteryResponse(payload)
+        if (pairs.isEmpty()) {
+            Log.d(TAG, "Battery response empty or malformed: ${payload.toHexString(HexFormat.UpperCase)}")
+            return
+        }
+        var left: PodParams? = null
+        var right: PodParams? = null
+        var case: PodParams? = null
+        for ((id, level) in pairs) {
+            // 0xFF = unavailable / not connected
+            val connected = level != 0xFF
+            val params = PodParams(
+                battery = if (connected) level.coerceAtMost(100) else 0,
+                isCharging = false,
+                isConnected = connected,
+                rawStatus = level
+            )
+            when (id) {
+                1 -> left = params
+                2 -> right = params
+                3 -> case = params
+                else -> Log.d(TAG, "Battery unknown device id=$id level=$level")
+            }
+        }
+        if (left == null && right == null && case == null) return
+        currentBatteryParams = BatteryParams(left, right, case)
+        Log.d(TAG, "Battery L=${left?.battery} R=${right?.battery} Case=${case?.battery}")
+        changeUIBatteryStatus(currentBatteryParams)
+        notifyConnectionPopups(left, right)
+    }
+
+    /**
+     * 连接后首次拿到有效电量时，弹出模块内建超级岛并更新常驻耳机通知。
+     * 链路：RfcommController -> 广播(chen.action.moondrop.*) -> MiBluetoothToastHook(com.xiaomi.bluetooth)
+     */
+    private fun notifyConnectionPopups(left: PodParams?, right: PodParams?) {
+        val context = mContext ?: return
+        if (!::mDevice.isInitialized || !::currentBatteryParams.isInitialized) return
+        val hasValidBattery = (left?.isConnected == true && (left?.battery ?: 0) > 0) ||
+            (right?.isConnected == true && (right?.battery ?: 0) > 0)
+
+        if (!mShowedConnectedToast) {
+            // 仅首次电量触发一次
+            if (hasValidBattery) mShowedConnectedToast = true
+            if (ConfigManager.islandMode() == ConfigManager.ISLAND_MODE_MODULE) {
+                // 模块内建超级岛弹窗（MiBluetoothToastHook 侧会再校验 islandMode）
+                if (hasValidBattery) {
+                    MiuiStrongToastUtil.showPodsBatteryToastByMiuiBt(context, currentBatteryParams, mDevice)
+                    Log.d(TAG, "sent module battery island broadcast")
+                }
+            }
+        }
+        // 常驻耳机通知（通知栏卡片，含电量）
+        MiuiStrongToastUtil.showPodsNotificationByMiuiBt(context, currentBatteryParams, mDevice)
     }
 
     private fun handleGainResponse(cmd: Int, payload: ByteArray) {
@@ -555,10 +670,12 @@ object RfcommController {
         reconnectPending = false
 
         closeSocketOnly()
+        rxBuffer.reset()
+        ancAvailableModes = null
 
         mContext?.let {
             stopRoutesScan()
-            cancelPodsNotificationByMiuiBt(context, device)
+            MiuiStrongToastUtil.cancelPodsNotificationByMiuiBt(context, device)
             sendAppStatusBroadcast(MoondropAction.ACTION_PODS_DISCONNECTED) {
                 putExtra("address", device.address)
             }
@@ -614,7 +731,8 @@ object RfcommController {
         val gaiaMode = when (mode) {
             NoiseControlMode.OFF -> AncMode.OFF
             NoiseControlMode.TRANSPARENCY -> AncMode.TRANSPARENCY
-            NoiseControlMode.NOISE_CANCELLATION -> AncMode.NOISE_CANCEL
+            // 降噪默认进自适应: 0x04 是降噪组入口(恢复上次子模式, 可能非自适应), 直接发 0x01 保证进入自适应降噪
+            NoiseControlMode.NOISE_CANCELLATION -> AncMode.ADAPTIVE
             NoiseControlMode.ADAPTIVE -> AncMode.ADAPTIVE
             NoiseControlMode.ANTI_WIND -> AncMode.ANTI_WIND
         }
@@ -640,6 +758,8 @@ object RfcommController {
             sendPacketSafe(GaiaPackets.ANC_QUERY, reason)
             delay(50)
             sendPacketSafe(GaiaPackets.GAIN_QUERY, reason)
+            delay(50)
+            sendPacketSafe(GaiaPackets.BATTERY_QUERY, reason)
             delay(50)
             sendPacketSafe(GaiaPackets.DEVICE_STATE_QUERY, reason)
         }
