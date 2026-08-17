@@ -105,7 +105,7 @@ fun PodDetailPage(
                     gainLevel = gainLevel,
                     gainOptions = gainOptions,
                     onGainLevelChange = onGainLevelChange,
-                    bottomContentPadding = bottomContentPadding
+                    bottomContentPadding = bottomContentPadding,
                 )
             }
         }
@@ -136,7 +136,7 @@ fun PodDetailPage(
             gainLevel = gainLevel,
             gainOptions = gainOptions,
             onGainLevelChange = onGainLevelChange,
-            bottomContentPadding = bottomContentPadding
+            bottomContentPadding = bottomContentPadding,
         )
     }
 }
@@ -158,7 +158,7 @@ private fun LazyListScope.podControlItems(
     gainLevel: Int,
     gainOptions: List<String>,
     onGainLevelChange: (Int) -> Unit,
-    bottomContentPadding: Dp
+    bottomContentPadding: Dp,
 ) {
     item {
         Card(
@@ -196,6 +196,7 @@ private fun LazyListScope.podControlItems(
             )
         }
     }
+
     item {
         androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(bottomContentPadding))
     }

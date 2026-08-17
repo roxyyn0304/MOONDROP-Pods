@@ -14,6 +14,7 @@ import android.graphics.BitmapFactory
 import android.graphics.drawable.Icon
 import android.os.Bundle
 import com.xzakota.hyper.notification.focus.FocusNotification
+import moe.chenxy.moondropods.utils.FocusIslandPrefs
 import moe.chenxy.moondropods.utils.FocusIslandUtil
 import moe.chenxy.moondropods.utils.PodImageLoader
 import moe.chenxy.moondropods.utils.SystemApisUtils
@@ -253,7 +254,15 @@ object MiBluetoothToastHook : HookContext() {
                                 val batteryParams = p1.getParcelableExtra("batteryParams", BatteryParams::class.java)!!
                                 // Use Focus Island (HyperOS 3+) for battery display
                                 val address = p1.getStringExtra("address").orEmpty()
-                                FocusIslandUtil.showBatteryIsland(context, prefs, batteryParams, address)
+                                val deviceName = p1.getStringExtra("device_name")?.takeIf { it.isNotBlank() }
+                                FocusIslandUtil.showBatteryIsland(
+                                    context = context,
+                                    batteryParams = batteryParams,
+                                    durationSeconds = FocusIslandPrefs.DEFAULT_TEMPORARY_BATTERY_ISLAND_DURATION_SECONDS,
+                                    deviceName = deviceName,
+                                    prefs = prefs,
+                                    address = address,
+                                )
                             } else if (p1?.action == "chen.action.moondrop.updatepodsnotification") {
                                 val batteryParams = p1.getParcelableExtra<BatteryParams>("batteryParams", BatteryParams::class.java)
                                 val device = p1.getParcelableExtra("device", BluetoothDevice::class.java)

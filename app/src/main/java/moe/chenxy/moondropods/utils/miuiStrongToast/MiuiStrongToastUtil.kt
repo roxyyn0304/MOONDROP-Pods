@@ -107,6 +107,7 @@ object MiuiStrongToastUtil {
         val intent = Intent("chen.action.moondrop.sendstrongtoast")
         intent.putExtra("batteryParams", batteryParams)
         intent.putExtra("address", device?.address.orEmpty())
+        intent.putExtra("device_name", device?.name.orEmpty())
         intent.`package` = "com.xiaomi.bluetooth"
         context.sendBroadcast(intent)
     }

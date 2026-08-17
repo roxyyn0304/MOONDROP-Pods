@@ -66,12 +66,6 @@
     <string name="custom_image_selected">Custom image selected</string>
     <string name="custom_image_default">Use default image</string>
     <string name="custom_image_restore_default">Restore default image</string>
-    <string name="import_melody_images">Import Images</string>
-    <string name="import_melody_images_summary">Import model images from HeyTap Headset</string>
-    <string name="import_melody_images_hint">Please connect the earphones once in HeyTap Headset first.</string>
-    <string name="import_melody_images_empty">No HeyTap Headset model images found.</string>
-    <string name="import_melody_images_root_required">Please check ROOT permission.</string>
-    <string name="import_melody_images_action">Import All</string>
     <string name="theme_title">Theme</string>
     <string name="theme_follow_system">Follow System</string>
     <string name="theme_light">Light</string>
@@ -131,4 +125,23 @@
     <string name="gain_high">High</string>
     <string name="gain_medium">Medium</string>
     <string name="gain_low">Low</string>
+    <string name="equalizer">Equalizer</string>
+    <string name="eq_presets">Presets</string>
+    <string name="eq_custom">Custom</string>
+    <string name="eq_custom_edit">Custom equalizer</string>
+    <string name="eq_no_data_hint">No EQ data yet. Query the device first.</string>
+    <string name="eq_query_now">Query now</string>
+    <string name="eq_apply">Apply</string>
+    <string name="eq_close">Close</string>
+    <string name="eq_reset">Reset</string>
+    <string name="connection_popup_left_ear">Left ear</string>
+    <string name="connection_popup_right_ear">Right ear</string>
+    <string name="connection_popup_case">Case</string>
+    <string name="battery_island_case_title">Case %1$s</string>
+    <string name="battery_island_ear_summary">Left %1$s  Right %2$s</string>
+    <string name="debug_log_title">Bluetooth Log</string>
+    <string name="debug_clear_log">Clear log</string>
+    <string name="debug_no_log">No logs yet</string>
+    <string name="debug_log_send">Send</string>
+    <string name="debug_log_recv">Receive</string>
 </resources>

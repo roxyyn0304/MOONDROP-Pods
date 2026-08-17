@@ -1,37 +1,36 @@
 *.iml
 .gradle
 /local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
-local.properties
-
-# Ignore tmp file for yuki hook api
-assets/xposed_init
-resources/META-INF/yukihookapi_init
-opencode.json
 /.idea
 /.qoder
 
-promat.md
-build.bat
+.DS_Store
+.externalNativeBuild
+.cxx
+.opencode.json
 
-# 构建产物与本地文件
+# 构建产物
+/build/
+/app/build/
+/captures/
+.kotlin/
 *.apk
 *.aab
-*.log
 *.hprof
 *.jks
 *.keystore
-.kotlin/
-/build/
-/captures/
-app/build/
+
+# 项目本地文件
+promat.md
+build.bat
+
+# Python 脚本（调试用，不提交）
+*.py
+__pycache__/
+*.pyc
+*.pyo
+
+# btsnoop 抓包日志
+*.log
+btsnoop_*.log
+btsnooz_*.log

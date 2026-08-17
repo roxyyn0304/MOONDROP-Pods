@@ -531,6 +531,7 @@ object RfcommController {
     @OptIn(ExperimentalStdlibApi::class)
     private fun handleMoondropPacket(packet: ByteArray) {
         Log.v(TAG, "Received: ${packet.toHexString(HexFormat.UpperCase)}")
+        sendBtLogBroadcast(isSend = false, packet, BtLogLabeler.labelRecv(packet))
 
         // Check if packet is valid GAIA format
         if (packet.size < 8 || packet[0] != MoondropPackets.HEADER_0 || packet[1] != MoondropPackets.HEADER_1) {
@@ -640,9 +641,30 @@ object RfcommController {
                     Log.d(TAG, "sent module battery island broadcast")
                 }
             }
+            // 连接弹窗（首次有效电量时弹出）
+            if (hasValidBattery && ::mDevice.isInitialized) {
+                showConnectionPopup(context)
+            }
         }
         // 常驻耳机通知（通知栏卡片，含电量）
         MiuiStrongToastUtil.showPodsNotificationByMiuiBt(context, currentBatteryParams, mDevice)
+    }
+
+    /** 弹出连接弹窗（ConnectionPopupActivity），显示电量并自动关闭 */
+    private fun showConnectionPopup(context: Context) {
+        try {
+            val intent = Intent().apply {
+                setClassName(BuildConfig.APPLICATION_ID, "moe.chenxy.moondropods.ConnectionPopupActivity")
+                putExtra("status", currentBatteryParams)
+                putExtra("device_name", mDevice.name ?: cachedDeviceName)
+                putExtra("dismiss_seconds", 8)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            }
+            context.startActivity(intent)
+            Log.d(TAG, "connection popup shown")
+        } catch (e: Exception) {
+            Log.e(TAG, "connection popup failed", e)
+        }
     }
 
     private fun handleGainResponse(cmd: Int, payload: ByteArray) {
@@ -705,12 +727,29 @@ object RfcommController {
                 return
             }
             RfcommLog.d(mContext, "RFCOMM/TX", packet.toHexString(HexFormat.UpperCase))
+            sendBtLogBroadcast(isSend = true, packet, BtLogLabeler.labelSend(packet))
             currentSocket.outputStream.write(packet)
             currentSocket.outputStream.flush()
         } catch (e: IOException) {
             Log.e(TAG, "Send packet failed", e)
             RfcommLog.e(mContext, TAG, "send failed: ${e.message.orEmpty()}")
             scheduleReconnect("send error", immediate = requestReason != null)
+        }
+    }
+
+    /** 蓝牙日志跨进程广播（com.android.bluetooth → 模块 App → BtLogStore） */
+    @OptIn(ExperimentalStdlibApi::class)
+    private fun sendBtLogBroadcast(isSend: Boolean, packet: ByteArray, label: String?) {
+        if (!RfcommLog.isEnabled() && !BtLogStore.isEnabled) return
+        val ctx = mContext ?: return
+        runCatching {
+            Intent(MoondropAction.ACTION_BT_LOG_ENTRY).apply {
+                setPackage(BuildConfig.APPLICATION_ID)
+                putExtra("is_send", isSend)
+                putExtra("hex", packet.toHexString(HexFormat.UpperCase))
+                putExtra("label", label)
+                addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
+            }.let { ctx.sendBroadcast(it) }
         }
     }
 

@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://github.com/user-attachments/assets/e8a3df6b-6e67-485a-ae1c-018ac24e87d4" width="110" height="110" style="border-radius: 22px;" alt="MOONDROP-Pods Icon"/>
+<img src="docs/icon.png" width="110" height="110" style="border-radius: 22px;" alt="MOONDROP-Pods Icon"/>
 
 # 🎧 MOONDROP-Pods
 

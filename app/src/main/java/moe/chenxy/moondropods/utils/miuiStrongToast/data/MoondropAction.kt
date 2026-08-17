@@ -20,8 +20,6 @@ object MoondropAction {
     const val ACTION_PODS_TRANSPARENCY_VOCAL_ENHANCEMENT_CHANGED = "chen.action.moondrop.pods_transparency_vocal_enhancement_changed"
     const val ACTION_SPATIAL_AUDIO_SET = "chen.action.moondrop.spatial_audio_set"
     const val ACTION_PODS_SPATIAL_AUDIO_CHANGED = "chen.action.moondrop.pods_spatial_audio_changed"
-    const val ACTION_EQ_PRESET_SET = "chen.action.moondrop.eq_preset_set"
-    const val ACTION_PODS_EQ_PRESET_CHANGED = "chen.action.moondrop.pods_eq_preset_changed"
     const val ACTION_PODS_SMART_ANC_LEVEL_CHANGED = "chen.action.moondrop.pods_smart_anc_level_changed"
     const val ACTION_DUAL_DEVICE_CONNECTION_SET = "chen.action.moondrop.dual_device_connection_set"
     const val ACTION_PODS_DUAL_DEVICE_CONNECTION_CHANGED = "chen.action.moondrop.pods_dual_device_connection_changed"
@@ -30,6 +28,7 @@ object MoondropAction {
     const val ACTION_RFCOMM_LOG_DISCONNECT = "chen.action.moondrop.rfcomm_log_disconnect"
     const val ACTION_RFCOMM_LOG_CLEAR = "chen.action.moondrop.rfcomm_log_clear"
     const val ACTION_RFCOMM_LOG = "chen.action.moondrop.rfcomm_log"
+    const val ACTION_BT_LOG_ENTRY = "chen.action.moondrop.bt_log_entry"
     const val ACTION_RFCOMM_DEBUG_SEND = "chen.action.moondrop.rfcomm_debug_send"
     // Adaptive模式开关状态变更广播，用于跨进程同步偏好设置（App �?com.android.bluetooth / com.xiaomi.bluetooth�?
     const val ACTION_ADAPTIVE_MODE_CHANGED = "chen.action.moondrop.adaptive_mode_changed"

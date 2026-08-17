@@ -36,7 +36,6 @@ import moe.chenxy.moondropods.pods.NoiseControlMode
 import moe.chenxy.moondropods.pods.WearStatus
 import moe.chenxy.moondropods.ui.dialogs.RestartScope
 import moe.chenxy.moondropods.ui.dialogs.RestartScopeDialog
-import moe.chenxy.moondropods.ui.dialogs.MelodyImageImportDialog
 import moe.chenxy.moondropods.ui.dialogs.PodImageConfigDialog
 import moe.chenxy.moondropods.ui.pages.EarphonesTabPage
 import moe.chenxy.moondropods.ui.pages.HomePage
@@ -53,7 +52,6 @@ import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.icon.extended.Edit
-import top.yukonga.miuix.kmp.icon.extended.Import
 import top.yukonga.miuix.kmp.icon.extended.Months
 import top.yukonga.miuix.kmp.icon.extended.Refresh
 import top.yukonga.miuix.kmp.icon.extended.Settings
@@ -120,7 +118,6 @@ internal fun MainTabsScaffold(
     onBackToDevicePicker: () -> Unit,
     onOpenSystemHeadsetSettings: () -> Unit,
     onSavePodImages: (String, String, Map<PodImageResource, Uri?>, Set<PodImageResource>) -> Unit,
-    onSavePodImageBytes: (String, String, Map<PodImageResource, ByteArray>) -> Unit,
 ) {
     val pagerState = rememberPagerState(
         initialPage = selectedTab.ordinal,
@@ -137,7 +134,6 @@ internal fun MainTabsScaffold(
         it.address.equals(connectedDeviceAddress, ignoreCase = true)
     }
     var showPodImageDialog by remember { mutableStateOf(false) }
-    var showMelodyImportDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(selectedTab) {
         val targetPage = selectedTab.ordinal
@@ -221,7 +217,6 @@ internal fun MainTabsScaffold(
                         onDeviceDisconnect = onDeviceDisconnect,
                         onDismissConnectError = onDismissConnectError,
                         onBackToDevicePicker = onBackToDevicePicker,
-                        onOpenMelodyImport = { showMelodyImportDialog = true },
                         onOpenPodImageConfig = { showPodImageDialog = true },
                         onOpenSystemHeadsetSettings = onOpenSystemHeadsetSettings,
                     )
@@ -253,7 +248,6 @@ internal fun MainTabsScaffold(
             if (isLandscapeDetail) {
                 LandscapeDetailActions(
                     onBackToDevicePicker = onBackToDevicePicker,
-                    onOpenMelodyImport = { showMelodyImportDialog = true },
                     onOpenPodImageConfig = { showPodImageDialog = true },
                     onOpenSystemHeadsetSettings = onOpenSystemHeadsetSettings,
                 )
@@ -276,17 +270,6 @@ internal fun MainTabsScaffold(
             onSave = { address, name, images, clearedImages ->
                 onSavePodImages(address, name, images, clearedImages)
                 showPodImageDialog = false
-            },
-        )
-
-        MelodyImageImportDialog(
-            show = showMelodyImportDialog,
-            currentAddress = connectedDeviceAddress,
-            currentName = displayTitle,
-            onDismissRequest = { showMelodyImportDialog = false },
-            onImport = { address, name, images ->
-                onSavePodImageBytes(address, name, images)
-                showMelodyImportDialog = false
             },
         )
     }
@@ -365,7 +348,6 @@ private fun EarphonesTabShell(
     onDeviceDisconnect: (BluetoothDevice) -> Unit,
     onDismissConnectError: () -> Unit,
     onBackToDevicePicker: () -> Unit,
-    onOpenMelodyImport: () -> Unit,
     onOpenPodImageConfig: () -> Unit,
     onOpenSystemHeadsetSettings: () -> Unit,
 ) {
@@ -387,7 +369,6 @@ private fun EarphonesTabShell(
                     actions = {
                         if (showEarphoneDetail) {
                             EarphoneDetailActions(
-                                onOpenMelodyImport = onOpenMelodyImport,
                                 onOpenPodImageConfig = onOpenPodImageConfig,
                                 onOpenSystemHeadsetSettings = onOpenSystemHeadsetSettings,
                             )
@@ -486,7 +467,6 @@ private fun SettingsTabPage(
 @Composable
 private fun LandscapeDetailActions(
     onBackToDevicePicker: () -> Unit,
-    onOpenMelodyImport: () -> Unit,
     onOpenPodImageConfig: () -> Unit,
     onOpenSystemHeadsetSettings: () -> Unit,
 ) {
@@ -499,18 +479,6 @@ private fun LandscapeDetailActions(
         Icon(imageVector = MiuixIcons.Back, contentDescription = "Back")
     }
     Box(Modifier.fillMaxSize()) {
-        IconButton(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(top = 8.dp, end = 104.dp)
-                .zIndex(1f),
-            onClick = onOpenMelodyImport,
-        ) {
-            Icon(
-                imageVector = MiuixIcons.Import,
-                contentDescription = stringResource(R.string.import_melody_images),
-            )
-        }
         IconButton(
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -540,16 +508,9 @@ private fun LandscapeDetailActions(
 
 @Composable
 private fun EarphoneDetailActions(
-    onOpenMelodyImport: () -> Unit,
     onOpenPodImageConfig: () -> Unit,
     onOpenSystemHeadsetSettings: () -> Unit,
 ) {
-    IconButton(onClick = onOpenMelodyImport) {
-        Icon(
-            imageVector = MiuixIcons.Import,
-            contentDescription = stringResource(R.string.import_melody_images),
-        )
-    }
     IconButton(onClick = onOpenPodImageConfig) {
         Icon(
             imageVector = MiuixIcons.Edit,

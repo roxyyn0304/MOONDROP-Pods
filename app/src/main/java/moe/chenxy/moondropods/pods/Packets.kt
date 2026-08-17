@@ -45,7 +45,6 @@ object GaiaFeature {
     const val GAIN: Int = 0x1E      // Gain control
     const val CODEC: Int = 0x20     // Codec (LDAC/LC3)
     const val DEVICE_MGMT: Int = 0x1A // Device management (battery query)
-    const val EQ: Int = 0x0A        // EQ params
 }
 
 /** Command IDs for MOONDROP GAIA protocol */
@@ -75,6 +74,7 @@ object GaiaCmd {
     // Device management commands (Feature=0x1A)
     /** 电量查询: payload = [01 02] (01=左耳, 02=右耳), 响应含充电盒(03) */
     const val BATTERY_QUERY: Int = 0x01
+
 }
 
 /**
@@ -181,6 +181,7 @@ object GaiaPackets {
         cmd = GaiaCmd.GAIN_SET,
         payload = byteArrayOf(level)
     )
+
 }
 
 /** Parser for MOONDROP GAIA response packets */
@@ -241,4 +242,7 @@ object GaiaResponseParser {
         if (payload.isEmpty()) return emptyList()
         return payload.map { it.toInt() and 0xFF }
     }
+
 }
+
+

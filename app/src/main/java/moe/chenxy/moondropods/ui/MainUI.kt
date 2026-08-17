@@ -53,9 +53,12 @@ import moe.chenxy.moondropods.pods.WearState
 import moe.chenxy.moondropods.pods.WearStatus
 import moe.chenxy.moondropods.pods.detectDeviceCapabilities
 import moe.chenxy.moondropods.ui.pages.AboutPage
+import moe.chenxy.moondropods.ui.pages.DebugLogPage
 import moe.chenxy.moondropods.ui.pages.DeviceCapabilitiesPage
+
 import moe.chenxy.moondropods.ui.pages.RfcommDebugPage
 import moe.chenxy.moondropods.ui.pages.ThemeSettingsPage
+import moe.chenxy.moondropods.pods.BtLogStore
 import moe.chenxy.moondropods.utils.RootManager
 import moe.chenxy.moondropods.utils.miuiStrongToast.data.BatteryParams
 import moe.chenxy.moondropods.utils.miuiStrongToast.data.MoondropAction
@@ -74,6 +77,7 @@ import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.icon.extended.Delete
+import top.yukonga.miuix.kmp.icon.extended.Months
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 
@@ -83,6 +87,8 @@ sealed interface Screen : NavKey {
     data object Theme : Screen
     data object DeviceCapabilities : Screen
     data object RfcommDebug : Screen
+    data object DebugLog : Screen
+
 }
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -237,6 +243,18 @@ fun MainUI(
                         gainLevel.intValue = p1.getIntExtra("level", 0)
                     }
 
+                    MoondropAction.ACTION_BT_LOG_ENTRY -> {
+                        val isSend = p1.getBooleanExtra("is_send", false)
+                        val hex = p1.getStringExtra("hex").orEmpty()
+                        if (hex.isNotEmpty()) {
+                            BtLogStore.addFromBroadcast(
+                                isSend = isSend,
+                                hex = hex,
+                                label = p1.getStringExtra("label"),
+                            )
+                        }
+                    }
+
                     MoondropAction.ACTION_PODS_CONNECTED -> {
                         val deviceName = p1.getStringExtra("device_name")
                         val shouldOpenEarphones = connectingDeviceAddress != null || !hasAppliedDefaultTab
@@ -308,6 +326,7 @@ fun MainUI(
             addAction(MoondropAction.ACTION_PODS_BATTERY_CHANGED)
             addAction(MoondropAction.ACTION_PODS_WEAR_STATUS_CHANGED)
             addAction(MoondropAction.ACTION_PODS_GAIN_CHANGED)
+            addAction(MoondropAction.ACTION_BT_LOG_ENTRY)
             addAction(MoondropAction.ACTION_PODS_CONNECTED)
             addAction(MoondropAction.ACTION_PODS_CONNECTION_STATE_CHANGED)
             addAction(MoondropAction.ACTION_PODS_DISCONNECTED)
@@ -619,7 +638,6 @@ fun MainUI(
                 onSavePodImages = { address, name, images, clearedImages ->
                     savePodImages(address, name, images, clearedImages)
                 },
-                onSavePodImageBytes = { address, name, images -> savePodImageBytes(address, name, images) },
             )
         }
         entry<Screen.About> {
@@ -777,6 +795,9 @@ fun MainUI(
                             }
                         },
                         actions = {
+                            IconButton(onClick = { backStack.add(Screen.DebugLog) }) {
+                                Icon(imageVector = MiuixIcons.Months, contentDescription = "BT log viewer")
+                            }
                             IconButton(onClick = { clearRfcommLogsRequest++ }) {
                                 Icon(imageVector = MiuixIcons.Delete, contentDescription = "Clear logs")
                             }
@@ -794,6 +815,36 @@ fun MainUI(
                         modifier = Modifier.nestedScroll(rfcommScrollBehavior.nestedScrollConnection),
                         contentPadding = PaddingValues(0.dp),
                         clearRequest = clearRfcommLogsRequest,
+                    )
+                }
+            }
+        }
+        entry<Screen.DebugLog> {
+            val debugLogScrollBehavior = MiuixScrollBehavior(rememberTopAppBarState())
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = stringResource(R.string.debug_log_title),
+                        largeTitle = stringResource(R.string.debug_log_title),
+                        scrollBehavior = debugLogScrollBehavior,
+                        navigationIcon = {
+                            IconButton(onClick = { backStack.removeLast() }) {
+                                Icon(imageVector = MiuixIcons.Back, contentDescription = "Back")
+                            }
+                        },
+                    )
+                }
+            ) { padding ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(backgroundColor)
+                        .padding(padding),
+                ) {
+                    DebugLogPage(
+                        modifier = Modifier.nestedScroll(debugLogScrollBehavior.nestedScrollConnection),
+                        contentPadding = PaddingValues(0.dp),
+                        onClear = { BtLogStore.clear() },
                     )
                 }
             }
