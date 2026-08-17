@@ -27,7 +27,6 @@
     <string name="more_click_action_summary">选择点击模块弹窗“更多”按钮时打开的位置</string>
     <string name="notification_click_module_popup">模块弹窗</string>
     <string name="click_action_system_settings">系统设置</string>
-    <string name="click_action_heytap">欢律</string>
     <string name="click_action_module">模块</string>
     <string name="enabled">开启</string>
     <string name="off">关闭</string>
