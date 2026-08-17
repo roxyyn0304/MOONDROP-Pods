@@ -24,7 +24,7 @@ An Xposed module for **MOONDROP earphones** on Xiaomi HyperOS, based on [OppoPod
 
 It deeply integrates the MOONDROP Pudding TWS earphones into HyperOS:
 
-- System-level **ANC / Gain / EQ** control with Hyper Island and Fusion Device Center support
+- System-level **ANC / Gain** control with Hyper Island and Fusion Device Center support
 - Direct SPP communication based on the [moondrop-gaia-protocol](https://github.com/roxyyn0304/moondrop-gaia-protocol)
   reverse-engineered library (verified via btsnoop captures)
 
@@ -38,7 +38,6 @@ It deeply integrates the MOONDROP Pudding TWS earphones into HyperOS:
 |---------|-------------|
 | 🎛️ **ANC Control** | Off / Transparency / Noise Cancellation (Adaptive) / Anti-Wind |
 | 🎚️ **Gain Control** | High / Medium / Low |
-| 🎛️ **Equalizer** | 6-band graphic EQ (-12 ~ +3 dB) with 6 built-in presets |
 | 🔋 **Battery** | Left / Right / Case battery levels |
 | 📶 **ANC Capability** | Auto-detect supported noise cancellation modes |
 
@@ -100,7 +99,7 @@ It deeply integrates the MOONDROP Pudding TWS earphones into HyperOS:
 
 ## ⚠️ Important
 
-> ### 🚫 Always control your earphones from the module's own UI (ANC / Gain / EQ / Battery, etc.)
+> ### 🚫 Always control your earphones from the module's own UI (ANC / Gain / Battery, etc.)
 >
 > The earphone interface in the system Bluetooth settings (device card, detail page, etc.)
 > shows state injected by this module, which **may not be accurate**.
