@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/icon.png" width="110" height="110" style="border-radius: 22px;" alt="MOONDROP-Pods Icon"/>
+
 # 🎧 MOONDROP-Pods
 
 ### 为 HyperOS 设备提供系统级 MOONDROP 耳机控制
