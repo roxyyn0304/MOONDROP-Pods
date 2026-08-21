@@ -56,7 +56,7 @@ It deeply integrates the MOONDROP Pudding TWS earphones into HyperOS:
 |---------|-------------|
 | 🪟 **Connection Popup** | Bottom card on connect: device name + animation + battery, auto-dismiss |
 | 🔋 **Battery Island** | Temporary island with circular progress for L/R/Case, dark mode support |
-| 💬 **Persistent Notification** | Earphone card in notification bar (battery + ANC cycle + disconnect) |
+| 💬 **Persistent Notification** | Earphone card in notification bar |
 | 🚀 **Quick Popup** | Tap notification / Control Center card for a floating control popup |
 
 ### 🛠️ Module Capabilities

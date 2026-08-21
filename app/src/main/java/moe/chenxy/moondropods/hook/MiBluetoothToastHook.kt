@@ -12,7 +12,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.BitmapFactory
 import android.graphics.drawable.Icon
-import android.os.Bundle
 import com.xzakota.hyper.notification.focus.FocusNotification
 import moe.chenxy.moondropods.utils.FocusIslandPrefs
 import moe.chenxy.moondropods.utils.FocusIslandUtil
@@ -22,16 +21,10 @@ import moe.chenxy.moondropods.utils.SystemApisUtils.cancelAsUser
 import moe.chenxy.moondropods.utils.SystemApisUtils.notifyAsUser
 import moe.chenxy.moondropods.config.ConfigManager
 import moe.chenxy.moondropods.utils.miuiStrongToast.data.BatteryParams
-import moe.chenxy.moondropods.utils.miuiStrongToast.data.MoondropAction
 import moe.chenxy.moondropods.R
-import moe.chenxy.moondropods.pods.detectDeviceCapabilities
 
 @SuppressLint("MissingPermission")
 object MiBluetoothToastHook : HookContext() {
-
-    // ANC 模式本地缓存，用于循环切换和状态同步（1=�?2=降噪 3=通�?4=自适应�?
-    // 通过接收 ACTION_PODS_ANC_CHANGED 广播�?RfcommController 保持同步
-    private var localAncMode = 1
 
     override fun onHook() {
 
@@ -46,7 +39,6 @@ object MiBluetoothToastHook : HookContext() {
             val miheadset_notification_Box = context.resources.getIdentifier("miheadset_notification_Box", "string", "com.xiaomi.bluetooth")
             val miheadset_notification_LeftEar = context.resources.getIdentifier("miheadset_notification_LeftEar", "string", "com.xiaomi.bluetooth")
             val miheadset_notification_RightEar = context.resources.getIdentifier("miheadset_notification_RightEar", "string", "com.xiaomi.bluetooth")
-            val miheadset_notification_Disconnect = context.resources.getIdentifier("miheadset_notification_Disconnect", "string", "com.xiaomi.bluetooth")
             val system_notification_accent_color = context.resources.getIdentifier("system_notification_accent_color", "color", "android")
             if (bluetoothDevice == null) {
                 Log.e("MoondropPods", "createPodsNotification: btDevice null")
@@ -59,16 +51,16 @@ object MiBluetoothToastHook : HookContext() {
                     alias = bluetoothDevice.name
                 }
 
-                val caseBattStr = if (batteryParams.case != null && batteryParams.case!!.isConnected)
+                val caseBattStr = if (batteryParams.case != null && batteryParams.case!!.isConnected && miheadset_notification_Box != 0)
                     "${context.resources.getString(miheadset_notification_Box)}${batteryParams.case!!.battery}%" +
                             "${if (batteryParams.case!!.isCharging) "⚡ " else " "}\n"
                 else ""
-                val leftEar = if (batteryParams.left != null && batteryParams.left!!.isConnected)
+                val leftEar = if (batteryParams.left != null && batteryParams.left!!.isConnected && miheadset_notification_LeftEar != 0)
                     "${context.resources.getString(miheadset_notification_LeftEar)}${batteryParams.left!!.battery}%" +
                         (if (batteryParams.left!!.isCharging) "⚡" else "")
                 else ""
                 val leftToRight = if (batteryParams.left?.isConnected == true && batteryParams.right?.isConnected == true) " " else ""
-                val rightEar = if (batteryParams.right != null && batteryParams.right!!.isConnected)
+                val rightEar = if (batteryParams.right != null && batteryParams.right!!.isConnected && miheadset_notification_RightEar != 0)
                     "$leftToRight${context.resources.getString(miheadset_notification_RightEar)}${batteryParams.right!!.battery}%" +
                         (if (batteryParams.right!!.isCharging) "⚡ " else " ")
                 else ""
@@ -85,22 +77,7 @@ object MiBluetoothToastHook : HookContext() {
                         setAllowBubbles(true)
                     }
                 )
-                val bundle = Bundle()
-                bundle.putParcelable("Device", bluetoothDevice)
-                val intent = Intent("com.android.bluetooth.headset.notification")
-                intent.putExtra("btData", bundle)
-                intent.putExtra("disconnect", "1")
-                intent.setIdentifier("BTHeadset$address")
-                val disconnectAction = Notification.Action(
-                    285737079,
-                    context.resources.getString(miheadset_notification_Disconnect),
-                    PendingIntent.getBroadcast(context, 0, intent, 201326592)
-                )
-                // 循环切换降噪模式，指�?package 确保广播路由�?com.android.bluetooth 进程
-                val ancCycleIntent = Intent(MoondropAction.ACTION_CYCLE_ANC)
-                ancCycleIntent.setPackage("com.android.bluetooth")
-                ancCycleIntent.setIdentifier("BTHeadset$address")
-                ancCycleIntent.putExtra("device_name", alias ?: bluetoothDevice.name ?: "")
+
                 val moduleContext = context.createPackageContext(
                     "moe.chenxy.moondropods", Context.CONTEXT_IGNORE_SECURITY
                 )
@@ -127,10 +104,9 @@ object MiBluetoothToastHook : HookContext() {
                     enableFloat = true
                     ticker = alias ?: ""
                     updatable = true
-//                    tickerPic = logo
 
                     iconTextInfo {
-                        animIconInfo{
+                        animIconInfo {
                             type = 0
                             src = logo
                         }
@@ -157,52 +133,23 @@ object MiBluetoothToastHook : HookContext() {
                             }
                         }
                     }
-
-
-                    textButton {
-                        addActionInfo {
-                            val ancLabel = moduleContext.getString(R.string.cycle_anc)
-                            val ancAction = Notification.Action.Builder(
-                                Icon.createWithResource(context, android.R.drawable.ic_lock_silent_mode),
-                                ancLabel,
-                                PendingIntent.getBroadcast(context, 1, ancCycleIntent, 201326592)
-                            ).build()
-                            action = createAction("key_anc_cycle", ancAction)
-                            actionTitle = ancLabel
-                        }
-                        addActionInfo {
-                            val disconnectLabel = moduleContext.getString(R.string.notification_btn_disconnect)
-                            val disconnectIntent = Intent("com.android.bluetooth.headset.notification").apply {
-                                putExtra("btData", bundle)
-                                putExtra("disconnect", "1")
-                                setIdentifier("BTHeadset$address")
-                            }
-                            val disconnectAction = Notification.Action.Builder(
-                                Icon.createWithResource(context, android.R.drawable.ic_delete),
-                                disconnectLabel,
-                                PendingIntent.getBroadcast(context, 2, disconnectIntent, 201326592)
-                            ).build()
-                            action = createAction("key_disconnect", disconnectAction)
-                            actionTitle = disconnectLabel
-                        }
-                    }
                 }
-                // AOD 息屏显示：左右耳电量拼合后注入 aodTitle
-                if (focusExtras != null) {
-                    val aodParts = mutableListOf<String>()
-                    if (batteryParams.left?.isConnected == true)
-                        aodParts.add("L ${batteryParams.left!!.battery}%")
-                    if (batteryParams.right?.isConnected == true)
-                        aodParts.add("R ${batteryParams.right!!.battery}%")
-                    val aodTitle = aodParts.joinToString(" | ")
-                    try {
-                        val json = org.json.JSONObject(focusExtras.getString("miui.focus.param") ?: "{}")
-                        val pv2 = json.optJSONObject("param_v2") ?: org.json.JSONObject()
-                        pv2.put("aodTitle", aodTitle)
-                        pv2.put("aodPic", "key_headset")
-                        json.put("param_v2", pv2)
-                        focusExtras.putString("miui.focus.param", json.toString())
-                    } catch (_: Exception) {}
+                // AOD: left/right ear battery merged into aodTitle
+                val aodParts = mutableListOf<String>()
+                if (batteryParams.left?.isConnected == true)
+                    aodParts.add("L ${batteryParams.left!!.battery}%")
+                if (batteryParams.right?.isConnected == true)
+                    aodParts.add("R ${batteryParams.right!!.battery}%")
+                val aodTitle = aodParts.joinToString(" | ")
+                try {
+                    val json = org.json.JSONObject(focusExtras.getString("miui.focus.param") ?: "{}")
+                    val pv2 = json.optJSONObject("param_v2") ?: org.json.JSONObject()
+                    pv2.put("aodTitle", aodTitle)
+                    pv2.put("aodPic", "key_headset")
+                    json.put("param_v2", pv2)
+                    focusExtras.putString("miui.focus.param", json.toString())
+                } catch (e: Exception) {
+                    Log.e("MoondropPods", "Failed to inject AOD params", e)
                 }
                 notificationManager.notifyAsUser(
                     "BTHeadset$address",
@@ -211,13 +158,11 @@ object MiBluetoothToastHook : HookContext() {
                         .setSmallIcon(android.R.drawable.stat_sys_data_bluetooth)
                         .setWhen(0L)
                         .setTicker(alias)
-                        .setDefaults(-1)
                         .setContentTitle(alias)
                         .setContentText(contentText)
                         .setContentIntent(pendingIntent)
                         .setDeleteIntent(deleteIntent(context, bluetoothDevice))
                         .setColor(context.getColor(system_notification_accent_color))
-                        .addAction(disconnectAction)
                         .apply { focusExtras?.let { addExtras(it) } }
                         .setVisibility(Notification.VISIBILITY_PUBLIC)
                         .build(),
@@ -240,75 +185,60 @@ object MiBluetoothToastHook : HookContext() {
             }
         }
 
-
         hookConstructorAfter(findConstructorByParamCount("com.android.bluetooth.ble.app.MiuiBluetoothNotification", 2)) {
             val context = getObjectField(instance, "mContext") as Context
 
-                    val broadcastReceiver = object : BroadcastReceiver() {
-                        override fun onReceive(p0: Context?, p1: Intent?) {
-                            if (p1?.action == "chen.action.moondrop.sendstrongtoast") {
-                                if (ConfigManager.islandMode() != ConfigManager.ISLAND_MODE_MODULE) {
-                                    Log.d("MoondropPods", "skip module island mode=${ConfigManager.islandMode()}")
-                                    return
-                                }
-                                val batteryParams = p1.getParcelableExtra("batteryParams", BatteryParams::class.java)!!
-                                // Use Focus Island (HyperOS 3+) for battery display
-                                val address = p1.getStringExtra("address").orEmpty()
-                                val deviceName = p1.getStringExtra("device_name")?.takeIf { it.isNotBlank() }
-                                FocusIslandUtil.showBatteryIsland(
-                                    context = context,
-                                    batteryParams = batteryParams,
-                                    durationSeconds = FocusIslandPrefs.DEFAULT_TEMPORARY_BATTERY_ISLAND_DURATION_SECONDS,
-                                    deviceName = deviceName,
-                                    prefs = prefs,
-                                    address = address,
-                                )
-                            } else if (p1?.action == "chen.action.moondrop.updatepodsnotification") {
-                                val batteryParams = p1.getParcelableExtra<BatteryParams>("batteryParams", BatteryParams::class.java)
-                                val device = p1.getParcelableExtra("device", BluetoothDevice::class.java)
-                                createPodsNotification(device, context, batteryParams!!)
-                            } else if (p1?.action == "chen.action.moondrop.cancelpodsnotification") {
-                                val device = p1.getParcelableExtra("device", BluetoothDevice::class.java) as BluetoothDevice
-                                cancelNotification(device, context)
-                            } else if (p1?.action == MoondropAction.ACTION_PODS_ANC_CHANGED) {
-                                // 同步耳机实际 ANC 状态到本地缓存，确保下次循环切换时状态准�?
-                                localAncMode = p1.getIntExtra("status", 1)
-                            } else if (p1?.action == MoondropAction.ACTION_CYCLE_ANC) {
-                                val capabilities = detectDeviceCapabilities(
-                                    deviceName = p1.getStringExtra("device_name").orEmpty(),
-                                    adaptiveOverride = prefs.getInt(
-                                        ConfigManager.PREF_KEY_ADAPTIVE_CAPABILITY_OVERRIDE,
-                                        ConfigManager.CAPABILITY_OVERRIDE_AUTO
-                                    ),
-                                    spatialAudioOverride = ConfigManager.CAPABILITY_OVERRIDE_AUTO,
-                                    spatialSoundSwitchOverride = ConfigManager.CAPABILITY_OVERRIDE_AUTO,
-                                )
-                                val cycle = if (capabilities.adaptiveSupported) {
-                                    listOf(2, 4, 3, 1)
-                                } else {
-                                    listOf(2, 3, 1)
-                                }
-                                val currentIndex = cycle.indexOf(if (localAncMode in 5..8) 2 else localAncMode)
-                                localAncMode = cycle[(currentIndex + 1).floorMod(cycle.size)]
-                                Intent(MoondropAction.ACTION_ANC_SELECT).apply {
-                                    putExtra("status", localAncMode)
-                                    addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
-                                    p0?.sendBroadcast(this)
-                                }
+            val broadcastReceiver = object : BroadcastReceiver() {
+                override fun onReceive(p0: Context?, p1: Intent?) {
+                    when (p1?.action) {
+                        "chen.action.moondrop.sendstrongtoast" -> {
+                            if (ConfigManager.islandMode() != ConfigManager.ISLAND_MODE_MODULE) {
+                                Log.d("MoondropPods", "skip module island mode=${ConfigManager.islandMode()}")
+                                return
                             }
+                            val batteryParams = p1.getParcelableExtra("batteryParams", BatteryParams::class.java)
+                            if (batteryParams == null) {
+                                Log.e("MoondropPods", "sendstrongtoast: batteryParams null")
+                                return
+                            }
+                            val address = p1.getStringExtra("address").orEmpty()
+                            val deviceName = p1.getStringExtra("device_name")?.takeIf { it.isNotBlank() }
+                            FocusIslandUtil.showBatteryIsland(
+                                context = context,
+                                batteryParams = batteryParams,
+                                durationSeconds = FocusIslandPrefs.DEFAULT_TEMPORARY_BATTERY_ISLAND_DURATION_SECONDS,
+                                deviceName = deviceName,
+                                prefs = prefs,
+                                address = address,
+                            )
+                        }
+
+                        "chen.action.moondrop.updatepodsnotification" -> {
+                            val batteryParams = p1.getParcelableExtra("batteryParams", BatteryParams::class.java)
+                            val device = p1.getParcelableExtra("device", BluetoothDevice::class.java)
+                            if (batteryParams == null || device == null) {
+                                Log.e("MoondropPods", "updatepodsnotification: batteryParams=$batteryParams, device=$device")
+                                return
+                            }
+                            createPodsNotification(device, context, batteryParams)
+                        }
+
+                        "chen.action.moondrop.cancelpodsnotification" -> {
+                            val device = p1.getParcelableExtra("device", BluetoothDevice::class.java)
+                            if (device == null) {
+                                Log.e("MoondropPods", "cancelpodsnotification: device null")
+                                return
+                            }
+                            cancelNotification(device, context)
                         }
                     }
+                }
+            }
 
-                    val intentFilter = IntentFilter("chen.action.moondrop.sendstrongtoast")
-                    intentFilter.addAction("chen.action.moondrop.updatepodsnotification")
-                    intentFilter.addAction("chen.action.moondrop.cancelpodsnotification")
-                    intentFilter.addAction(MoondropAction.ACTION_CYCLE_ANC)
-                    // 监听耳机实际 ANC 状态变更广播，保持 localAncMode �?RfcommController 同步
-                    intentFilter.addAction(MoondropAction.ACTION_PODS_ANC_CHANGED)
-                    context.registerReceiver(broadcastReceiver, intentFilter,
-                        Context.RECEIVER_EXPORTED)
+            val intentFilter = IntentFilter("chen.action.moondrop.sendstrongtoast")
+            intentFilter.addAction("chen.action.moondrop.updatepodsnotification")
+            intentFilter.addAction("chen.action.moondrop.cancelpodsnotification")
+            context.registerReceiver(broadcastReceiver, intentFilter, Context.RECEIVER_EXPORTED)
         }
     }
-
-    private fun Int.floorMod(divisor: Int): Int = ((this % divisor) + divisor) % divisor
 }
